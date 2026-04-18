@@ -1,19 +1,34 @@
-﻿using Clerk.BackendAPI.Helpers.Jwks;
+using Clerk.BackendAPI.Helpers.Jwks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System.Security.Claims;
 
 namespace MyFinBackend.Auth
 {
-    public class ClerkAuthorizeAttribute : ActionFilterAttribute
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+    public class ClerkAuthorizeAttribute : Attribute, IFilterFactory
     {
-        public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+        public bool IsReusable => false;
+
+        public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
+        {
+            var config = serviceProvider.GetRequiredService<IConfiguration>();
+            return new ClerkAuthorizeFilter(config);
+        }
+    }
+
+    public class ClerkAuthorizeFilter(IConfiguration config) : IAsyncActionFilter
+    {
+        public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
             try
             {
+                var secretKey = config["clerkApiKey"]!;
+                var frontendUrl = config["frontendUrl"]!;
+
                 var options = new AuthenticateRequestOptions(
-                    secretKey: "sk_test_qtYSjDJ75UC0DVCyqMwcvz8QznMwBWZMDdI0hn8lTM",
-                    authorizedParties: new string[] { "http://localhost:5173" }
+                    secretKey: secretKey,
+                    authorizedParties: [frontendUrl]
                 );
 
                 var authResult = await AuthenticateRequest.AuthenticateRequestAsync(context.HttpContext.Request, options);
@@ -24,20 +39,20 @@ namespace MyFinBackend.Auth
                     return;
                 }
 
-                // Adicionar informações do usuário ao context
-                var userId = authResult.Claims.FindFirst("sub")?.Value ??
-                        authResult.Claims.FindFirst("user_id")?.Value ??
-                        authResult.Claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var sessionId = authResult.Claims.FindFirst("sid")?.Value ??
-                           authResult.Claims.FindFirst("session_id")?.Value;
+                var userId = authResult.Claims.FindFirst("sub")?.Value
+                    ?? authResult.Claims.FindFirst("user_id")?.Value
+                    ?? authResult.Claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                var sessionId = authResult.Claims.FindFirst("sid")?.Value
+                    ?? authResult.Claims.FindFirst("session_id")?.Value;
+
                 var claims = new List<Claim>
                 {
-                    new Claim("sub", userId),
-                    new Claim("sid", sessionId),
+                    new("sub", userId!),
+                    new("sid", sessionId!),
                 };
 
-                var identity = new ClaimsIdentity(claims, "Clerk");
-                context.HttpContext.User = new ClaimsPrincipal(identity);
+                context.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(claims, "Clerk"));
             }
             catch (Exception)
             {

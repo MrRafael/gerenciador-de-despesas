@@ -1,13 +1,11 @@
 import type { UserInfo } from "@/types";
 import axios from "axios";
 
-export const getUserById = async (userId: string): Promise<UserInfo> => {
-
+export const getUserById = async (userId: string): Promise<UserInfo | null> => {
     try {
-        const { data, status } = await axios.get('api/User/' + userId);
-
+        const { data } = await axios.get(`api/users/${userId}`);
         return data;
     } catch {
-        console.log('Error');
+        return null;
     }
 }

@@ -6,8 +6,8 @@ import { onMounted, ref } from 'vue';
 import { getMyGroups } from '@/api/groups';
 import { useUserStore } from '@/stores/user';
 
-const sUser = useUserStore()
-const groups = ref<MemberGroup[]>([])
+const sUser = useUserStore();
+const groups = ref<MemberGroup[]>([]);
 
 const loadGroups = async () => {
     if (sUser.user?.id)
@@ -16,29 +16,16 @@ const loadGroups = async () => {
 
 onMounted(() => {
     loadGroups();
-})
-
-sUser.$onAction(({
-    name, // name of the action
-    store, // store instance, same as `someStore`
-    args, // array of parameters passed to the action
-    after, // hook after the action returns or resolves
-    onError, // hook if the action throws or rejects
-}) => {
-    after(() => {
-        console.log('aquiii', sUser.user?.id);
-        
-        loadGroups()
-    })
 });
 
+sUser.$onAction(({ after }) => {
+    after(() => loadGroups());
+});
 </script>
 
 <template>
-    <group-menage :my-groups="groups" @group-deleted="() => { loadGroups() }" @invites-change="() => { loadGroups() }"></group-menage>
-    <new-groups @groups-added="(e) => {
-        loadGroups()
-    }" />
+    <group-menage :my-groups="groups" @group-deleted="loadGroups" @invites-change="loadGroups" />
+    <new-groups @groups-added="loadGroups" />
 </template>
 
 <style scoped></style>

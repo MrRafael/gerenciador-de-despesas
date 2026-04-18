@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using MyFinBackend.Auth;
-using MyFinBackend.Database;
+using MyFinBackend.Dto;
 using MyFinBackend.Model;
+using MyFinBackend.Services;
 using System.Security.Claims;
 
 namespace MyFinBackend.Controller
@@ -10,139 +10,56 @@ namespace MyFinBackend.Controller
     [Route("api/[controller]")]
     [ApiController]
     [ClerkAuthorize]
-    public class UsersController : ControllerBase
+    public class UsersController(IUserService userService) : ControllerBase
     {
-        private readonly FinanceContext _dbContext;
-
-        public UsersController(FinanceContext dbContext)
-        {
-            _dbContext = dbContext;
-        }
-
-        // GET: api/Users
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
-        {
-            var contextUserId = GetUserIdFromContext();
-            return await _dbContext.Users.Where(x => x.Id == contextUserId).ToListAsync();
-        }
-
-        // GET: api/Users/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(string id)
+        public async Task<ActionResult<UserDto>> GetUser(string id)
         {
-            var contextUserId = GetUserIdFromContext();
-            if(contextUserId != id)
+            var result = await userService.GetByIdAsync(id, GetUserId());
+            return result.Error switch
             {
-                return BadRequest();
-            }
-
-            var user = await _dbContext.Users.FindAsync(id);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            return user;
+                ServiceError.Unauthorized => Forbid(),
+                ServiceError.NotFound => NotFound(),
+                _ => Ok(result.Data)
+            };
         }
 
-        // PUT: api/Users/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPost]
+        public async Task<ActionResult<UserDto>> PostUser(User user)
+        {
+            var result = await userService.CreateAsync(user, GetUserId());
+            return result.Error switch
+            {
+                ServiceError.Unauthorized => Forbid(),
+                ServiceError.Conflict => Conflict(),
+                _ => CreatedAtAction(nameof(GetUser), new { id = result.Data!.Id }, result.Data)
+            };
+        }
+
         [HttpPut("{id}")]
         public async Task<IActionResult> PutUser(string id, User user)
         {
-            var contextUserId = GetUserIdFromContext();
-            if (id != user.Id || contextUserId != id)
+            var result = await userService.UpdateAsync(id, user, GetUserId());
+            return result.Error switch
             {
-                return BadRequest();
-            }
-
-            _dbContext.Entry(user).State = EntityState.Modified;
-
-            try
-            {
-                await _dbContext.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!UserExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
+                ServiceError.Unauthorized => Forbid(),
+                ServiceError.NotFound => NotFound(),
+                _ => NoContent()
+            };
         }
 
-        // POST: api/Users
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<User>> PostUser(User user)
-        {
-            var contextUserId = GetUserIdFromContext();
-            if (contextUserId != user.Id)
-            {
-                return BadRequest();
-            }
-
-            _dbContext.Users.Add(user);
-            try
-            {
-                await _dbContext.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (UserExists(user.Id))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return CreatedAtAction("GetUser", new { id = user.Id }, user);
-        }
-
-        // DELETE: api/Users/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(string id)
         {
-            var contextUserId = GetUserIdFromContext();
-            if (contextUserId != id)
+            var result = await userService.DeleteAsync(id, GetUserId());
+            return result.Error switch
             {
-                return BadRequest();
-            }
-
-            var user = await _dbContext.Users.FindAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            _dbContext.Users.Remove(user);
-            await _dbContext.SaveChangesAsync();
-
-            return NoContent();
+                ServiceError.Unauthorized => Forbid(),
+                ServiceError.NotFound => NotFound(),
+                _ => NoContent()
+            };
         }
 
-        private bool UserExists(string id)
-        {
-            return _dbContext.Users.Any(e => e.Id == id);
-        }
-
-        private string GetUserIdFromContext()
-        {
-            var mainClaims = User;
-            var userId = mainClaims.FindFirstValue("sub");
-
-            return userId;
-        }
+        private string GetUserId() => User.FindFirstValue("sub")!;
     }
 }

@@ -192,6 +192,38 @@ namespace MyFinBackend.Services
             return ServiceResult.Ok();
         }
 
+        public async Task<ServiceResult<List<GroupExpenseDto>>> GetGroupExpensesAsync(int groupId, string contextUserId, DateOnly startDate, DateOnly endDate)
+        {
+            var isMember = await db.Groups.AnyAsync(g => g.Id == groupId && g.UserId == contextUserId)
+                || await db.GroupMembers.AnyAsync(gm => gm.GroupId == groupId && gm.UserId == contextUserId && gm.IsActive);
+
+            if (!isMember)
+                return ServiceResult<List<GroupExpenseDto>>.Fail(ServiceError.Unauthorized);
+
+            var expenses = await db.Expenses
+                .Where(e => e.GroupId == groupId && e.Date >= startDate && e.Date <= endDate)
+                .ToListAsync();
+
+            var expenseIds = expenses.Select(e => e.Id).ToList();
+
+            var splitConfigs = await db.ExpenseSplitConfigs
+                .Where(sc => expenseIds.Contains(sc.ExpenseId))
+                .ToDictionaryAsync(sc => sc.ExpenseId, sc => sc.SplitType);
+
+            var result = expenses.Select(e => new GroupExpenseDto
+            {
+                Id = e.Id,
+                Description = e.Description,
+                Value = e.Value,
+                Date = e.Date,
+                CategoryId = e.CategoryId,
+                UserId = e.UserId,
+                SplitType = splitConfigs.TryGetValue(e.Id, out var st) ? st : null
+            }).ToList();
+
+            return ServiceResult<List<GroupExpenseDto>>.Ok(result);
+        }
+
         public async Task<ServiceResult<GroupMemberDto>> InviteMemberAsync(MemberGrouToAddDto memberGroup, string contextUserId)
         {
             var userToAdd = await db.Users.FirstOrDefaultAsync(x => x.Email == memberGroup.UserEmail);

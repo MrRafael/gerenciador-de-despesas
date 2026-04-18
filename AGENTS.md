@@ -104,27 +104,27 @@ Services/      # Lógica de negócio (IExpenseService, IGroupService, IExpenseCa
 
 | Controller | Método | Rota |
 | --- | --- | --- |
-| Users | GET | `/api/users` - usuário atual |
 | Users | GET | `/api/users/{id}` |
 | Users | POST | `/api/users` |
 | Users | PUT | `/api/users/{id}` |
 | Users | DELETE | `/api/users/{id}` |
 | Expenses | GET | `/api/users/{userId}/expenses` |
 | Expenses | GET | `/api/users/{userId}/expenses/by-range?startDate=&endDate=` |
-| Expenses | POST | `/api/expenses` |
-| Expenses | POST | `/api/expenses/PostBulkExpense` |
+| Expenses | POST | `/api/expenses` — cria despesa (aceita `groupId?` e `splitType?`) |
+| Expenses | POST | `/api/expenses/bulk` |
 | Expenses | DELETE | `/api/expenses/{expenseId}` |
 | ExpenseCategory | GET | `/api/users/{userId}/expensecategory` |
 | ExpenseCategory | POST | `/api/expensecategory` |
-| GroupMember | GET | `/api/users/{userId}/groupmember` |
-| GroupMember | GET | `/api/users/{userId}/groupmember/invites` |
-| GroupMember | GET | `/api/groups/{groupId}/groupmember` |
-| GroupMember | POST | `/api/groupmember` - criar grupo |
-| GroupMember | POST | `/api/groupmember/NewMember` - convidar por email |
-| GroupMember | PUT | `/api/groupmember/Accept` |
-| GroupMember | DELETE | `/api/groupmember/Refuse` |
-| GroupMember | DELETE | `/api/groupmember/Member` |
-| GroupMember | DELETE | `/api/groupmember/Group` |
+| Groups | GET | `/api/users/{userId}/groups` |
+| Groups | GET | `/api/users/{userId}/group-invitations` |
+| Groups | GET | `/api/groups/{groupId}/members` |
+| Groups | GET | `/api/groups/{groupId}/expenses?startDate=&endDate=` |
+| Groups | POST | `/api/groups` — criar grupo |
+| Groups | POST | `/api/groups/{groupId}/members` — convidar por email |
+| Groups | PUT | `/api/groups/{groupId}/invitations/{userId}/accept` |
+| Groups | DELETE | `/api/groups/{groupId}` |
+| Groups | DELETE | `/api/groups/{groupId}/members/{userId}` |
+| Groups | DELETE | `/api/groups/{groupId}/invitations/{userId}` |
 
 **Autenticação:** Todo endpoint usa `[ClerkAuthorize]`. O atributo valida o Bearer token e extrai o userId do claim `sub`.
 
@@ -138,6 +138,7 @@ Services/      # Lógica de negócio (IExpenseService, IGroupService, IExpenseCa
 
 **Camada de serviços (`backend/Services/`):**
 
+- `IUserService` / `UserService` — CRUD de usuários
 - `IExpenseService` / `ExpenseService` — CRUD de despesas com verificações de autorização
 - `IGroupService` / `GroupService` — gestão de grupos, convites e membros
 - `IExpenseCategoryService` / `ExpenseCategoryService` — CRUD de categorias
@@ -204,3 +205,46 @@ environment:
 - **Commits:** seguir [Conventional Commits](https://www.conventionalcommits.org/) — `tipo(escopo): descrição`. Tipos comuns: `feat`, `fix`, `chore`, `refactor`, `docs`, `test`. Mensagem curta e objetiva, sem co-autoria automática.
 - **Não usar Firebase** para nada novo.
 - **Atualizar este arquivo** sempre que houver mudança relevante de arquitetura, novo padrão, nova regra de negócio ou novo domínio. O AGENTS.md é o contrato de contexto entre conversas — se não está aqui, o próximo agente não saberá.
+
+---
+
+## Padrões de qualidade obrigatórios
+
+### Clean Code
+
+- Nomes de classes, métodos, variáveis e parâmetros devem ser autoexplicativos (sem abreviações obscuras).
+- Parâmetros de método em C# devem ser `camelCase` (não `PascalCase`).
+- Nenhum código comentado deve permanecer no repositório — se não é usado, é removido.
+- Sem `console.log` de debug no frontend — use o DevTools quando precisar inspecionar.
+- Controllers devem ser finos: recebem a request, delegam ao service, mapeiam o `ServiceResult` para status HTTP. Nenhuma lógica de negócio ou acesso direto ao banco nos controllers.
+- Credenciais e chaves nunca hardcoded — sempre via `IConfiguration`/`.env`.
+
+### SOLID
+
+- **SRP:** cada classe tem uma única responsabilidade. Controllers não acessam banco; services não conhecem HTTP.
+- **OCP:** novos comportamentos adicionados via extensão (novos métodos/implementações), não modificando código existente que funciona.
+- **LSP:** implementações de interface devem ser substituíveis pelo contrato sem surpresas.
+- **ISP:** interfaces pequenas e coesas. Evitar interfaces gigantes que forçam implementações vazias.
+- **DIP:** dependa de abstrações (`IExpenseService`, `IGroupService`, `IUserService`). Nunca instancie dependências concretas dentro de classes — injete pelo construtor.
+
+### RESTful API
+
+- **Recursos em substantivos plurais e minúsculos:** `/api/expenses`, `/api/groups`, `/api/users`.
+- **Hierarquia de recursos:** sub-recursos como `/api/groups/{groupId}/members`, `/api/users/{userId}/groups`.
+- **Verbos HTTP corretos:**
+  - `GET` — leitura (nunca modifica estado)
+  - `POST` — criação (retorna `201 Created` com o recurso criado e `Location` header)
+  - `PUT` — substituição completa do recurso
+  - `PATCH` — atualização parcial
+  - `DELETE` — remoção (retorna `204 No Content`)
+- **Sem verbos nas rotas:** `/api/expenses/bulk` ✅ — `/api/expenses/PostBulkExpense` ❌
+- **Status HTTP semânticos:**
+  - `200 OK` — leitura bem-sucedida ou atualização (PUT/PATCH) bem-sucedida
+  - `201 Created` — criação bem-sucedida (POST)
+  - `204 No Content` — deleção ou ação sem corpo de retorno
+  - `400 Bad Request` — request mal-formada (body inválido, tipos errados)
+  - `401 Unauthorized` — não autenticado (sem token ou token inválido)
+  - `403 Forbidden` — autenticado mas sem permissão para o recurso
+  - `404 Not Found` — recurso não existe (não usar para lista vazia — lista vazia retorna `200` com `[]`)
+  - `409 Conflict` — conflito de estado (ex: recurso já existe)
+- **DTOs sempre nas bordas:** controllers nunca expõem entidades do banco diretamente. Toda entrada e saída usa DTOs dedicados.

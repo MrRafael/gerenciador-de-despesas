@@ -2,7 +2,7 @@
 import type { ExpenseGroup } from '@/types';
 import { ref } from 'vue';
 import { NButton, NInputGroup, NInput, useMessage } from 'naive-ui'
-import { createMember } from '@/api/groups';
+import { inviteMember } from '@/api/groups';
 
 const props = defineProps<{
     selectedGroup: ExpenseGroup
@@ -15,7 +15,7 @@ const emailToInvite = ref('');
 
 async function inviteMember() {
     try {
-        await createMember({ groupId: props.selectedGroup.id!, userEmail: emailToInvite.value })
+        await inviteMember(props.selectedGroup.id!, emailToInvite.value)
         emit('inveted', emailToInvite.value);
         emailToInvite.value = '';
         message.success("Convite enviado");

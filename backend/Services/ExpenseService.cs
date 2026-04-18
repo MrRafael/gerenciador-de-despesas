@@ -13,9 +13,6 @@ namespace MyFinBackend.Services
                 return ServiceResult<List<ExpenseReturnDto>>.Fail(ServiceError.Unauthorized);
 
             var expenses = await db.Expenses.Where(x => x.UserId == userId).ToListAsync();
-            if (expenses.Count == 0)
-                return ServiceResult<List<ExpenseReturnDto>>.Fail(ServiceError.NotFound);
-
             return ServiceResult<List<ExpenseReturnDto>>.Ok(expenses.Select(ToDto).ToList());
         }
 
@@ -27,9 +24,6 @@ namespace MyFinBackend.Services
             var expenses = await db.Expenses
                 .Where(x => x.UserId == userId && x.Date >= startDate && x.Date <= endDate)
                 .ToListAsync();
-
-            if (expenses.Count == 0)
-                return ServiceResult<List<ExpenseReturnDto>>.Fail(ServiceError.NotFound);
 
             return ServiceResult<List<ExpenseReturnDto>>.Ok(expenses.Select(ToDto).ToList());
         }
@@ -50,6 +44,37 @@ namespace MyFinBackend.Services
 
             db.Expenses.Add(expense);
             await db.SaveChangesAsync();
+            return ServiceResult<ExpenseReturnDto>.Ok(ToDto(expense));
+        }
+
+        public async Task<ServiceResult<ExpenseReturnDto>> CreateWithSplitAsync(CreateExpenseDto dto, string contextUserId)
+        {
+            if (dto.UserId != contextUserId)
+                return ServiceResult<ExpenseReturnDto>.Fail(ServiceError.Unauthorized);
+
+            var expense = new Expense
+            {
+                Description = dto.Description,
+                Value = dto.Value,
+                Date = dto.Date,
+                UserId = dto.UserId,
+                CategoryId = dto.CategoryId,
+                GroupId = dto.GroupId
+            };
+
+            db.Expenses.Add(expense);
+            await db.SaveChangesAsync();
+
+            if (dto.SplitType.HasValue)
+            {
+                db.ExpenseSplitConfigs.Add(new ExpenseSplitConfig
+                {
+                    ExpenseId = expense.Id,
+                    SplitType = dto.SplitType.Value
+                });
+                await db.SaveChangesAsync();
+            }
+
             return ServiceResult<ExpenseReturnDto>.Ok(ToDto(expense));
         }
 

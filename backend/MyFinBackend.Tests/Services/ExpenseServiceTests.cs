@@ -29,15 +29,15 @@ namespace MyFinBackend.Tests.Services
         }
 
         [Fact]
-        public async Task GetByUserId_ReturnsNotFound_WhenNoExpenses()
+        public async Task GetByUserId_ReturnsEmptyList_WhenNoExpenses()
         {
             using var db = DbContextFactory.Create();
             var service = new ExpenseService(db);
 
             var result = await service.GetByUserIdAsync("user-a", "user-a");
 
-            Assert.False(result.IsSuccess);
-            Assert.Equal(ServiceError.NotFound, result.Error);
+            Assert.True(result.IsSuccess);
+            Assert.Empty(result.Data!);
         }
 
         [Fact]

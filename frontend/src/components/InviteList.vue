@@ -18,26 +18,18 @@ onBeforeMount(async () => {
     await syncInvites();
 });
 
-sUser.$onAction(({
-    name, // name of the action
-    store, // store instance, same as `someStore`
-    args, // array of parameters passed to the action
-    after, // hook after the action returns or resolves
-    onError, // hook if the action throws or rejects
-}) => {
-    after(() => {
-        syncInvites();
-    })
+sUser.$onAction(({ after }) => {
+    after(() => syncInvites());
 });
 
 async function accepts(invite: MemberGroup) {
-    await acceptInvite(invite.userId, invite.id!);
+    await acceptInvite(invite.id!, invite.userId);
     emit('invitesChange');
     syncInvites();
 }
 
-async function reject(invite: ExpenseGroup) {
-    await refuseInvite(invite.userId, invite.id!)
+async function reject(invite: MemberGroup) {
+    await refuseInvite(invite.id!, invite.userId);
     syncInvites();
     emit('invitesChange');
 }

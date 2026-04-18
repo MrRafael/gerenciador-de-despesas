@@ -1,65 +1,49 @@
-import type { ExpenseGroup, MemberGroup } from '@/types';
+import type { GroupExpense, MemberGroup } from '@/types';
 import axios from 'axios';
 
-export const getMyGroups = async (userId: string) => {
-    const { data, status } = await axios.get(`api/Users/${userId}/GroupMember`);
-
-    return data
-}
-
-export const createGroup = async (groupToSave: { name: string, userId: string }) => {
-    const { data, status } = await axios.post('api/GroupMember/', groupToSave);
-
+export const getMyGroups = async (userId: string): Promise<MemberGroup[]> => {
+    const { data } = await axios.get(`api/users/${userId}/groups`);
     return data;
 }
 
-export const getMembers = async (groupId: number) => {
-    const { data, status } = await axios.get(`api/Groups/${groupId}/GroupMember`);
-
-    return data
-}
-
-
-export const createMember = async (memberToAdd: { groupId: number, userEmail: string }) => {
-    const { data, status } = await axios.post('api/GroupMember/NewMember', memberToAdd);
-
+export const getInvites = async (userId: string): Promise<MemberGroup[]> => {
+    const { data } = await axios.get(`api/users/${userId}/group-invitations`);
     return data;
 }
 
-export const getInvites = async (userId: string) => {
-    const { data, status } = await axios.get(`api/Users/${userId}/GroupMember/Invites`);
-
-    return data
+export const getMembers = async (groupId: number): Promise<MemberGroup[]> => {
+    const { data } = await axios.get(`api/groups/${groupId}/members`);
+    return data;
 }
 
-export const acceptInvite = async (userId: string, groupId: number) => {
-    const { data, status } = await axios.put(`api/GroupMember/Accept`, {userId, groupId});
-
-    return data
+export const getGroupExpenses = async (groupId: number, startDate: string, endDate: string): Promise<GroupExpense[]> => {
+    const { data } = await axios.get(`api/groups/${groupId}/expenses`, { params: { startDate, endDate } });
+    return data;
 }
 
-export const refuseInvite = async (userId: string, groupId: number) => {
-    const { data, status } = await axios.delete(`api/GroupMember/Refuse`, {params: {
-        userId,
-        groupId
-    }});
-
-    return data
+export const createGroup = async (groupToSave: { name: string, userId: string }): Promise<MemberGroup> => {
+    const { data } = await axios.post('api/groups', groupToSave);
+    return data;
 }
 
-export const deleteGroup = async (groupId: number) => {
-    const { data, status } = await axios.delete(`api/GroupMember/Group`, {params: {
-        groupId
-    }});
-
-    return data
+export const inviteMember = async (groupId: number, userEmail: string): Promise<MemberGroup> => {
+    const { data } = await axios.post(`api/groups/${groupId}/members`, { userEmail });
+    return data;
 }
 
-export const deleteMember = async (userId: string, groupId: number) => {
-    const { data, status } = await axios.delete(`api/GroupMember/Member`, {params: {
-        userId,
-        groupId
-    }});
+export const acceptInvite = async (groupId: number, userId: string): Promise<MemberGroup> => {
+    const { data } = await axios.put(`api/groups/${groupId}/invitations/${userId}/accept`);
+    return data;
+}
 
-    return data
+export const refuseInvite = async (groupId: number, userId: string): Promise<void> => {
+    await axios.delete(`api/groups/${groupId}/invitations/${userId}`);
+}
+
+export const deleteGroup = async (groupId: number): Promise<void> => {
+    await axios.delete(`api/groups/${groupId}`);
+}
+
+export const deleteMember = async (groupId: number, userId: string): Promise<void> => {
+    await axios.delete(`api/groups/${groupId}/members/${userId}`);
 }

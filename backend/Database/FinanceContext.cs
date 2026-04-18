@@ -20,6 +20,7 @@ public partial class FinanceContext : DbContext
     public virtual DbSet<GroupMember> GroupMembers { get; set; }
     public virtual DbSet<GroupMemberConfig> GroupMemberConfigs { get; set; }
     public virtual DbSet<ExpenseSplitConfig> ExpenseSplitConfigs { get; set; }
+    public virtual DbSet<ExpenseSplitShare> ExpenseSplitShares { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -221,6 +222,29 @@ public partial class FinanceContext : DbContext
                 .HasForeignKey<ExpenseSplitConfig>(e => e.ExpenseId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("fk_expense_split_config");
+        });
+
+        modelBuilder.Entity<ExpenseSplitShare>(entity =>
+        {
+            entity.HasKey(e => new { e.ExpenseId, e.UserId }).HasName("expense_split_share_pk");
+
+            entity.ToTable("ExpenseSplitShare");
+
+            entity.Property(e => e.ExpenseId).HasColumnName("expense_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id").HasColumnType("character varying");
+            entity.Property(e => e.Percentage).HasColumnName("percentage").HasColumnType("numeric");
+
+            entity.HasOne(e => e.Expense)
+                .WithMany()
+                .HasForeignKey(e => e.ExpenseId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_split_share_expense");
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_split_share_user");
         });
 
         OnModelCreatingPartial(modelBuilder);

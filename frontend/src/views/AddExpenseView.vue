@@ -3,7 +3,7 @@ import { useMonthStore } from '@/stores/currentMonth';
 import { useYearStore } from '@/stores/currentYear';
 import { useUserStore } from '@/stores/user';
 import NewCategory from '@/components/NewCategory.vue';
-import type { ExpenseCategory, ExpenseSaveDto, UserInfo } from '@/types';
+import { SplitType, type ExpenseCategory, type ExpenseSaveDto, type MemberGroup, type UserInfo } from '@/types';
 import { NButton, NDatePicker, NForm, NFormItem, NModal, NInput, NInputNumber, NTooltip, useMessage, NSelect, NIcon, type FormInst } from 'naive-ui';
 import {
     AddCircleOutlineTwotone as AddIcon,
@@ -12,6 +12,7 @@ import { computed, onBeforeMount, ref } from 'vue';
 import { formatCurrency, parseCurrency } from '../util';
 import { getCategoriesByUserId } from '@/api/category';
 import { createExpense } from '@/api/expense';
+import { getMyGroups } from '@/api/groups';
 
 const message = useMessage();
 
@@ -24,10 +25,22 @@ const expense = ref<ExpenseSaveDto>(startExpense());
 
 const user = ref<UserInfo>();
 const categories = ref<ExpenseCategory[]>([]);
+const groups = ref<MemberGroup[]>([]);
 const isSaving = ref(false);
 const showModal = ref(false);
 
-const options = computed(() => categories.value.map(x => ({ label: x.name, value: x.id })))
+const categoryOptions = computed(() => categories.value.map(x => ({ label: x.name, value: x.id })));
+
+const groupOptions = computed(() => [
+    { label: 'Nenhum (despesa pessoal)', value: null },
+    ...groups.value.map(g => ({ label: g.name, value: g.id }))
+]);
+
+const splitTypeOptions = [
+    { label: 'Divisão igual', value: SplitType.Equal },
+    { label: 'Proporcional ao salário', value: SplitType.Proportional },
+    { label: 'Manual', value: SplitType.Manual },
+];
 
 onBeforeMount(async () => {
     loadData();
@@ -36,10 +49,12 @@ onBeforeMount(async () => {
 const loadData = async () => {
     user.value = sUser.user;
     if (user.value?.id) {
-        const cat = await getCategoriesByUserId(user.value.id);
-        if (cat) {
-            categories.value = cat;
-        }
+        const [cat, grp] = await Promise.all([
+            getCategoriesByUserId(user.value.id),
+            getMyGroups(user.value.id),
+        ]);
+        if (cat) categories.value = cat;
+        if (grp) groups.value = grp;
     }
 }
 
@@ -56,6 +71,8 @@ function startExpense(): ExpenseSaveDto {
         date: date.getTime(),
         value: null,
         description: '',
+        groupId: undefined,
+        splitType: undefined,
     }
 }
 
@@ -78,29 +95,25 @@ const rules = {
     },
 }
 
-sMonth.$onAction(({
-    name, // name of the action
-    store, // store instance, same as `someStore`
-    args, // array of parameters passed to the action
-    after, // hook after the action returns or resolves
-    onError, // hook if the action throws or rejects
-}) => {
+sMonth.$onAction(({ after }) => {
     after(() => {
         expense.value = startExpense();
     })
 });
 
-sUser.$onAction(({
-    name, // name of the action
-    store, // store instance, same as `someStore`
-    args, // array of parameters passed to the action
-    after, // hook after the action returns or resolves
-    onError, // hook if the action throws or rejects
-}) => {
+sUser.$onAction(({ after }) => {
     after(() => {
         loadData()
     })
 });
+
+const onGroupChange = (groupId: number | null) => {
+    if (!groupId) {
+        expense.value.splitType = undefined;
+    } else if (expense.value.splitType === undefined) {
+        expense.value.splitType = SplitType.Equal;
+    }
+}
 
 const onNewCategoryClosed = () => {
     showModal.value = false;
@@ -117,7 +130,9 @@ const save = async () => {
                     value: expense.value.value,
                     date: new Date(expense.value.date).toISOString().substring(0, 10),
                     categoryId: expense.value.categoryId,
-                    userId: user.value?.id
+                    userId: user.value?.id,
+                    groupId: expense.value.groupId || undefined,
+                    splitType: expense.value.groupId ? expense.value.splitType : undefined,
                 })
 
                 message.success('Despesa adicionada com sucesso');
@@ -145,7 +160,7 @@ const save = async () => {
             <n-input v-model:value="expense.description" placeholder="Descrição" />
         </n-form-item>
         <n-form-item label="Categoria" path="categoryId">
-            <n-select v-model:value="expense.categoryId" filterable :options="options" />
+            <n-select v-model:value="expense.categoryId" filterable :options="categoryOptions" />
             <n-tooltip trigger="hover">
                 <template #trigger>
                     <n-button type="tertiary" @click="showModal = true">
@@ -156,6 +171,16 @@ const save = async () => {
                 </template>
                 Adicionar Categoria
             </n-tooltip>
+        </n-form-item>
+        <n-form-item v-if="groups.length > 0" label="Grupo" path="groupId">
+            <n-select
+                v-model:value="expense.groupId"
+                :options="groupOptions"
+                @update:value="onGroupChange"
+            />
+        </n-form-item>
+        <n-form-item v-if="expense.groupId" label="Tipo de divisão" path="splitType">
+            <n-select v-model:value="expense.splitType" :options="splitTypeOptions" />
         </n-form-item>
     </n-form>
 

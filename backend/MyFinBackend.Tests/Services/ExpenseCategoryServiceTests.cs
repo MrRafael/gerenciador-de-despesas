@@ -24,14 +24,15 @@ namespace MyFinBackend.Tests.Services
         }
 
         [Fact]
-        public async Task GetByUserId_ReturnsNotFound_WhenNoCategories()
+        public async Task GetByUserId_ReturnsEmptyList_WhenNoCategories()
         {
             using var db = DbContextFactory.Create();
             var service = new ExpenseCategoryService(db);
 
             var result = await service.GetByUserIdAsync("user-a", "user-a");
 
-            Assert.Equal(ServiceError.NotFound, result.Error);
+            Assert.True(result.IsSuccess);
+            Assert.Empty(result.Data!);
         }
 
         [Fact]

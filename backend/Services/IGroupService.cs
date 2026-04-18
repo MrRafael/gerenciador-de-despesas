@@ -14,5 +14,6 @@ namespace MyFinBackend.Services
         Task<ServiceResult> DeleteMemberAsync(string userId, int groupId, string contextUserId);
         Task<ServiceResult> DeleteGroupAsync(int groupId, string contextUserId);
         Task<ServiceResult<GroupMemberDto>> InviteMemberAsync(MemberGrouToAddDto memberGroup, string contextUserId);
+        Task<ServiceResult<List<GroupExpenseDto>>> GetGroupExpensesAsync(int groupId, string contextUserId, DateOnly startDate, DateOnly endDate);
     }
 }

@@ -73,7 +73,7 @@ async function handleDeleteMember(userId: string) {
         positiveText: 'Confirmar',
         negativeText: 'Não',
         onPositiveClick: async () => {
-            await deleteMember(userId, selectedGroup.value.id!);
+            await deleteMember(selectedGroup.value.id!, userId);
             if(selectedGroup.value.userId === userId){
                 currentGroup.value = null
             }

@@ -8,7 +8,7 @@ namespace MyFinBackend.Services
         Task<ServiceResult<List<ExpenseReturnDto>>> GetByUserIdAsync(string userId, string contextUserId);
         Task<ServiceResult<List<ExpenseReturnDto>>> GetByDateRangeAsync(string userId, string contextUserId, DateOnly startDate, DateOnly endDate);
         Task<ServiceResult<ExpenseReturnDto>> GetByIdAsync(int id, string contextUserId);
-        Task<ServiceResult<ExpenseReturnDto>> CreateAsync(Expense expense, string contextUserId);
+        Task<ServiceResult<ExpenseReturnDto>> CreateWithSplitAsync(CreateExpenseDto dto, string contextUserId);
         Task<ServiceResult<List<ExpenseReturnDto>>> CreateBulkAsync(BulkExpenseToSaveDto bulk, string contextUserId);
         Task<ServiceResult> DeleteAsync(int expenseId, string contextUserId);
     }

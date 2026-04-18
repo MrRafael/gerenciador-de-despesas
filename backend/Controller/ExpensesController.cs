@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MyFinBackend.Auth;
 using MyFinBackend.Dto;
-using MyFinBackend.Model;
 using MyFinBackend.Services;
 using System.Security.Claims;
 
@@ -12,26 +11,24 @@ namespace MyFinBackend.Controller
     [ClerkAuthorize]
     public class ExpensesController(IExpenseService expenseService) : ControllerBase
     {
-        [HttpGet("/api/Users/{userId}/[controller]")]
+        [HttpGet("/api/users/{userId}/[controller]")]
         public async Task<ActionResult<List<ExpenseReturnDto>>> GetExpensesByUserId(string userId)
         {
             var result = await expenseService.GetByUserIdAsync(userId, GetUserId());
             return result.Error switch
             {
-                ServiceError.Unauthorized => BadRequest(),
-                ServiceError.NotFound => NotFound(),
+                ServiceError.Unauthorized => Forbid(),
                 _ => Ok(result.Data)
             };
         }
 
-        [HttpGet("/api/Users/{userId}/[controller]/by-range")]
+        [HttpGet("/api/users/{userId}/[controller]/by-range")]
         public async Task<ActionResult<List<ExpenseReturnDto>>> GetExpensesByDateRange(string userId, DateOnly startDate, DateOnly endDate)
         {
             var result = await expenseService.GetByDateRangeAsync(userId, GetUserId(), startDate, endDate);
             return result.Error switch
             {
-                ServiceError.Unauthorized => BadRequest(),
-                ServiceError.NotFound => NotFound(),
+                ServiceError.Unauthorized => Forbid(),
                 _ => Ok(result.Data)
             };
         }
@@ -44,14 +41,14 @@ namespace MyFinBackend.Controller
         }
 
         [HttpPost]
-        public async Task<ActionResult<ExpenseReturnDto>> PostExpense(Expense expense)
+        public async Task<ActionResult<ExpenseReturnDto>> PostExpense(CreateExpenseDto dto)
         {
-            var result = await expenseService.CreateAsync(expense, GetUserId());
+            var result = await expenseService.CreateWithSplitAsync(dto, GetUserId());
             if (!result.IsSuccess) return BadRequest();
-            return CreatedAtAction("GetExpense", new { id = result.Data!.Id }, result.Data);
+            return CreatedAtAction(nameof(GetExpense), new { id = result.Data!.Id }, result.Data);
         }
 
-        [HttpPost("PostBulkExpense")]
+        [HttpPost("bulk")]
         public async Task<ActionResult<List<ExpenseReturnDto>>> PostBulkExpense(BulkExpenseToSaveDto bulk)
         {
             var result = await expenseService.CreateBulkAsync(bulk, GetUserId());
@@ -63,7 +60,7 @@ namespace MyFinBackend.Controller
         public async Task<ActionResult> DeleteExpense(int expenseId)
         {
             var result = await expenseService.DeleteAsync(expenseId, GetUserId());
-            return result.IsSuccess ? NoContent() : BadRequest();
+            return result.IsSuccess ? NoContent() : Forbid();
         }
 
         private string GetUserId() => User.FindFirstValue("sub")!;

@@ -33,12 +33,20 @@ export interface Expense {
     userId?: string,
 }
 
+export enum SplitType {
+    Equal = 0,
+    Proportional = 1,
+    Manual = 2,
+}
+
 export interface ExpenseSaveDto {
     description: string,
     value: number | null,
     date: number,
     categoryId?: number,
     userId?: string,
+    groupId?: number,
+    splitType?: SplitType,
 }
 
 export interface ExpenseCategory {
@@ -51,6 +59,16 @@ export interface ExpenseGroup {
     id?: number,
     name: string;
     userId: string;
+}
+
+export interface GroupExpense {
+    id: number;
+    description: string;
+    value: number;
+    date: string;
+    categoryId: number;
+    userId: string;
+    splitType?: SplitType;
 }
 
 export interface MonthCollabUser {

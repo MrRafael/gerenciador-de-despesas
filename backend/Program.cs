@@ -14,6 +14,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<FinanceContext>(opt => opt.UseNpgsql(builder.Configuration.GetConnectionString("AppDbContext")));
 
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<IGroupService, GroupService>();
 builder.Services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
