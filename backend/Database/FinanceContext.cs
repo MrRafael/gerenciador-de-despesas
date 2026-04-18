@@ -46,12 +46,6 @@ public partial class FinanceContext : DbContext
                 .HasForeignKey(ec => ec.UserId)
                 .IsRequired();
 
-            entity.HasMany<Expense>()
-                .WithOne()
-                .HasForeignKey(e => e.UserId)
-                .IsRequired()
-                .HasConstraintName("fk_expense_user");
-
             entity.HasMany(u => u.OwnedGroups)
                 .WithOne(g => g.User)
                 .HasForeignKey(g => g.UserId)
@@ -62,6 +56,13 @@ public partial class FinanceContext : DbContext
                 .WithOne(gm => gm.User)
                 .HasForeignKey(gm => gm.UserId)
                 .HasConstraintName("fk_user_group_memberships");
+
+            entity.HasMany(u => u.Expenses)
+                .WithOne(e => e.User)
+                .HasForeignKey(e => e.UserId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_expense_user");
         });
 
         modelBuilder.Entity<ExpenseCategory>(entity =>
@@ -87,10 +88,11 @@ public partial class FinanceContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("fk_expense_category_user");
 
-            entity.HasMany<Expense>()
-                .WithOne()
+            entity.HasMany(ec => ec.Expenses)
+                .WithOne(e => e.Category)
                 .HasForeignKey(e => e.CategoryId)
                 .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("fk_expense_category");
         });
 
@@ -123,18 +125,20 @@ public partial class FinanceContext : DbContext
             entity.Property(e => e.CategoryId)
                 .HasColumnName("category_id");
 
+            entity.Property(e => e.GroupId)
+                .HasColumnName("group_id")
+                .IsRequired(false);
 
-            entity.HasOne<User>()
-                .WithMany()
-                .HasForeignKey(e => e.UserId)
-                .IsRequired()
-                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.SplitType)
+                .HasColumnName("split_type")
+                .IsRequired(false);
 
-            entity.HasOne<ExpenseCategory>()
+            entity.HasOne(e => e.Group)
                 .WithMany()
-                .HasForeignKey(e => e.CategoryId)
-                .IsRequired()
-                .OnDelete(DeleteBehavior.Restrict);
+                .HasForeignKey(e => e.GroupId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_expense_group");
         });
 
         modelBuilder.Entity<Group>(entity =>
