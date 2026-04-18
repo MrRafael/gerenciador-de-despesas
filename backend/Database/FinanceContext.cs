@@ -18,6 +18,8 @@ public partial class FinanceContext : DbContext
 
     public virtual DbSet<Group> Groups { get; set; }
     public virtual DbSet<GroupMember> GroupMembers { get; set; }
+    public virtual DbSet<GroupMemberConfig> GroupMemberConfigs { get; set; }
+    public virtual DbSet<ExpenseSplitConfig> ExpenseSplitConfigs { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -129,10 +131,6 @@ public partial class FinanceContext : DbContext
                 .HasColumnName("group_id")
                 .IsRequired(false);
 
-            entity.Property(e => e.SplitType)
-                .HasColumnName("split_type")
-                .IsRequired(false);
-
             entity.HasOne(e => e.Group)
                 .WithMany()
                 .HasForeignKey(e => e.GroupId)
@@ -190,6 +188,39 @@ public partial class FinanceContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("fk_member_user");
+        });
+
+        modelBuilder.Entity<GroupMemberConfig>(entity =>
+        {
+            entity.HasKey(e => new { e.GroupId, e.UserId }).HasName("group_member_config_pk");
+
+            entity.ToTable("GroupMemberConfig");
+
+            entity.Property(e => e.GroupId).HasColumnName("group_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id").HasColumnType("character varying");
+            entity.Property(e => e.Salary).HasColumnName("salary").HasColumnType("numeric").IsRequired(false);
+
+            entity.HasOne(e => e.GroupMember)
+                .WithOne()
+                .HasForeignKey<GroupMemberConfig>(e => new { e.GroupId, e.UserId })
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_group_member_config");
+        });
+
+        modelBuilder.Entity<ExpenseSplitConfig>(entity =>
+        {
+            entity.HasKey(e => e.ExpenseId).HasName("expense_split_config_pk");
+
+            entity.ToTable("ExpenseSplitConfig");
+
+            entity.Property(e => e.ExpenseId).HasColumnName("expense_id");
+            entity.Property(e => e.SplitType).HasColumnName("split_type");
+
+            entity.HasOne(e => e.Expense)
+                .WithOne()
+                .HasForeignKey<ExpenseSplitConfig>(e => e.ExpenseId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_expense_split_config");
         });
 
         OnModelCreatingPartial(modelBuilder);
