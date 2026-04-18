@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using MyFinBackend;
 using MyFinBackend.Database;
+using MyFinBackend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,10 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<FinanceContext>(opt => opt.UseNpgsql(builder.Configuration.GetConnectionString("AppDbContext")));
+
+builder.Services.AddScoped<IExpenseService, ExpenseService>();
+builder.Services.AddScoped<IGroupService, GroupService>();
+builder.Services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
 
 builder.Services.AddCors(options =>
 {

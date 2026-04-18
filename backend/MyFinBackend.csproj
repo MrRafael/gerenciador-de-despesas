@@ -27,6 +27,10 @@
 
   <ItemGroup>
     <Folder Include="Migrations\" />
+    <Compile Remove="MyFinBackend.Tests\**" />
+    <Content Remove="MyFinBackend.Tests\**" />
+    <EmbeddedResource Remove="MyFinBackend.Tests\**" />
+    <None Remove="MyFinBackend.Tests\**" />
   </ItemGroup>
 
 </Project>

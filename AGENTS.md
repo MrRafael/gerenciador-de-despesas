@@ -127,7 +127,15 @@ Model/         # Entidades do banco
 - `frontendUrl` -origem permitida no CORS
 - `clerkApiKey` -chave do Clerk
 
-**Padrão arquitetural atual:** Controllers acessam `FinanceContext` diretamente (sem camada de serviço). Ao adicionar features, manter esse padrão por enquanto.
+**Padrão arquitetural atual:** Controllers são finos — recebem a request, delegam para a camada de serviço (`Services/`) e mapeiam o `ServiceResult` para o status HTTP. Toda lógica de negócio e acesso ao banco fica nos serviços.
+
+**Camada de serviços (`backend/Services/`):**
+
+- `IExpenseService` / `ExpenseService` — CRUD de despesas com verificações de autorização
+- `IGroupService` / `GroupService` — gestão de grupos, convites e membros
+- `IExpenseCategoryService` / `ExpenseCategoryService` — CRUD de categorias
+
+Os serviços retornam `ServiceResult<T>` ou `ServiceResult` (sem dados). O enum `ServiceError` possui: `None`, `NotFound`, `Unauthorized`, `Conflict`.
 
 ---
 
@@ -148,9 +156,20 @@ Model/         # Entidades do banco
 
 ---
 
+## Testes
+
+**Backend:** xUnit + EF InMemory. Projeto em `backend/MyFinBackend.Tests/`.
+
+- Testes cobrem os serviços diretamente (não os controllers)
+- Rodar com: `cd backend && dotnet test`
+
+**Regra crítica sobre testes existentes:** Nunca altere um teste existente sem solicitação explícita do usuário. Se uma implementação quebra um teste, informe o motivo antes de alterar — ex: *"é necessário alterar o teste X por A e B razões"* — e aguarde confirmação. Testes que passam são contrato estabelecido.
+
+---
+
 ## Convenções
 
 - Frontend em português brasileiro na UI, código em inglês
 - Backend: nomes de classes/métodos em inglês, C# padrão PascalCase
-- Commits descritivos no padrão `tipo: descrição` (feat, fix, chore, refactor)
+- Commits descritivos no padrão `tipo(escopo): descrição` seguindo Conventional Commits
 - Não usar Firebase para nada novo

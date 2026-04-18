@@ -1,9 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using MyFinBackend.Auth;
-using MyFinBackend.Database;
 using MyFinBackend.Dto;
 using MyFinBackend.Model;
+using MyFinBackend.Services;
 using System.Security.Claims;
 
 namespace MyFinBackend.Controller
@@ -11,154 +10,62 @@ namespace MyFinBackend.Controller
     [Route("api/[controller]")]
     [ApiController]
     [ClerkAuthorize]
-    public class ExpensesController : ControllerBase
+    public class ExpensesController(IExpenseService expenseService) : ControllerBase
     {
-        private readonly FinanceContext _dbContext;
-
-        public ExpensesController(FinanceContext dbContext)
-        {
-            _dbContext = dbContext;
-        }
-
-        // GET: api/Users/5/Expenses
         [HttpGet("/api/Users/{userId}/[controller]")]
         public async Task<ActionResult<List<ExpenseReturnDto>>> GetExpensesByUserId(string userId)
         {
-            string contextUserId = GetUserIdFromContext();
-
-            if (userId != contextUserId)
+            var result = await expenseService.GetByUserIdAsync(userId, GetUserId());
+            return result.Error switch
             {
-                return BadRequest();
-            }
-
-            List<Expense> expense = await _dbContext.Expenses.Where(x => x.UserId == userId).ToListAsync();
-            if (expense == null || expense.Count == 0)
-            {
-                return NotFound();
-            }
-
-            return expense.Select(x => new ExpenseReturnDto
-            {
-                Id = x.Id,
-                Description = x.Description,
-                Date = x.Date,
-                Value = x.Value,
-                CategoryId = x.CategoryId
-            }).ToList();
+                ServiceError.Unauthorized => BadRequest(),
+                ServiceError.NotFound => NotFound(),
+                _ => Ok(result.Data)
+            };
         }
 
         [HttpGet("/api/Users/{userId}/[controller]/by-range")]
         public async Task<ActionResult<List<ExpenseReturnDto>>> GetExpensesByDateRange(string userId, DateOnly startDate, DateOnly endDate)
         {
-            string contextUserId = GetUserIdFromContext();
-
-            if (userId != contextUserId)
+            var result = await expenseService.GetByDateRangeAsync(userId, GetUserId(), startDate, endDate);
+            return result.Error switch
             {
-                return BadRequest();
-            }
-
-            List<Expense> expense = await _dbContext.Expenses.Where(x => x.UserId == userId && x.Date >= startDate && x.Date <= endDate).ToListAsync();
-            if (expense == null || expense.Count == 0)
-            {
-                return NotFound();
-            }
-
-            return expense.Select(x => new ExpenseReturnDto
-            {
-                Id = x.Id,
-                Description = x.Description,
-                Date = x.Date,
-                Value = x.Value,
-                CategoryId = x.CategoryId
-            }).ToList();
+                ServiceError.Unauthorized => BadRequest(),
+                ServiceError.NotFound => NotFound(),
+                _ => Ok(result.Data)
+            };
         }
 
-        // GET: api/Expenses/5
         [HttpGet("{id}")]
         public async Task<ActionResult<ExpenseReturnDto>> GetExpense(int id)
         {
-            Expense expense = await _dbContext.Expenses.FindAsync(id);
-            string contextUserId = GetUserIdFromContext();
-
-            if (expense == null || expense.UserId != contextUserId)
-            {
-                return NotFound();
-            }
-
-            return new ExpenseReturnDto
-            {
-                Id = expense.Id,
-                Description = expense.Description,
-                Date = expense.Date,
-                Value = expense.Value,
-                CategoryId = expense.CategoryId
-            };
+            var result = await expenseService.GetByIdAsync(id, GetUserId());
+            return result.IsSuccess ? Ok(result.Data) : NotFound();
         }
 
         [HttpPost]
         public async Task<ActionResult<ExpenseReturnDto>> PostExpense(Expense expense)
         {
-            var contextUserId = GetUserIdFromContext();
-            if (contextUserId != expense.UserId)
-            {
-                return BadRequest();
-            }
-
-            _dbContext.Expenses.Add(expense);
-            await _dbContext.SaveChangesAsync();
-
-            return CreatedAtAction("GetExpense", new { id = expense.Id }, new ExpenseReturnDto
-            {
-                Id = expense.Id,
-                Description = expense.Description,
-                Date = expense.Date,
-                Value = expense.Value,
-                CategoryId = expense.CategoryId
-            });
+            var result = await expenseService.CreateAsync(expense, GetUserId());
+            if (!result.IsSuccess) return BadRequest();
+            return CreatedAtAction("GetExpense", new { id = result.Data!.Id }, result.Data);
         }
 
         [HttpPost("PostBulkExpense")]
-        public async Task<ActionResult<List<ExpenseReturnDto>>> PostBulkExpense(BulkExpenseToSaveDto bulkexpenses)
+        public async Task<ActionResult<List<ExpenseReturnDto>>> PostBulkExpense(BulkExpenseToSaveDto bulk)
         {
-            var contextUserId = GetUserIdFromContext();
-            if (contextUserId != bulkexpenses.Expenses.FirstOrDefault()?.UserId)
-            {
-                return BadRequest();
-            }
-
-            _dbContext.Expenses.AddRange(bulkexpenses.Expenses);
-            await _dbContext.SaveChangesAsync();
-            return StatusCode(StatusCodes.Status201Created, bulkexpenses.Expenses.Select(x => new ExpenseReturnDto
-            {
-                CategoryId = x.CategoryId,
-                Date = x.Date,
-                Description = x.Description,
-                Id = x.Id,
-                Value = x.Value
-            }));
+            var result = await expenseService.CreateBulkAsync(bulk, GetUserId());
+            if (!result.IsSuccess) return BadRequest();
+            return StatusCode(StatusCodes.Status201Created, result.Data);
         }
 
         [HttpDelete("{expenseId}")]
-        public async Task<ActionResult> deleteExpense(int expenseId)
+        public async Task<ActionResult> DeleteExpense(int expenseId)
         {
-            var expense = await _dbContext.Expenses.FindAsync(expenseId);
-            var contextUserId = GetUserIdFromContext();
-            if (expense == null || contextUserId != expense.UserId)
-            {
-                return BadRequest();
-            }
-
-            _dbContext.Expenses.Remove(expense);
-            await _dbContext.SaveChangesAsync();
-            return NoContent();
+            var result = await expenseService.DeleteAsync(expenseId, GetUserId());
+            return result.IsSuccess ? NoContent() : BadRequest();
         }
 
-        private string GetUserIdFromContext()
-        {
-            var mainClaims = User;
-            var userId = mainClaims.FindFirstValue("sub");
-
-            return userId;
-        }
+        private string GetUserId() => User.FindFirstValue("sub")!;
     }
 }
