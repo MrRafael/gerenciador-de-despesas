@@ -31,6 +31,8 @@ export interface Expense {
     date: string,
     categoryId?: number,
     userId?: string,
+    groupId?: number,
+    groupName?: string,
 }
 
 export enum SplitType {

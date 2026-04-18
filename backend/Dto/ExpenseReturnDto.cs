@@ -9,5 +9,7 @@ namespace MyFinBackend.Dto
         public float Value { get; set; }
         public DateOnly Date { get; set; }
         public int CategoryId { get; set; }
+        public int? GroupId { get; set; }
+        public string? GroupName { get; set; }
     }
 }

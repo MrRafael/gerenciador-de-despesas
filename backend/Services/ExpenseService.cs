@@ -12,7 +12,7 @@ namespace MyFinBackend.Services
             if (userId != contextUserId)
                 return ServiceResult<List<ExpenseReturnDto>>.Fail(ServiceError.Unauthorized);
 
-            var expenses = await db.Expenses.Where(x => x.UserId == userId).ToListAsync();
+            var expenses = await db.Expenses.Include(x => x.Group).Where(x => x.UserId == userId).ToListAsync();
             return ServiceResult<List<ExpenseReturnDto>>.Ok(expenses.Select(ToDto).ToList());
         }
 
@@ -22,6 +22,7 @@ namespace MyFinBackend.Services
                 return ServiceResult<List<ExpenseReturnDto>>.Fail(ServiceError.Unauthorized);
 
             var expenses = await db.Expenses
+                .Include(x => x.Group)
                 .Where(x => x.UserId == userId && x.Date >= startDate && x.Date <= endDate)
                 .ToListAsync();
 
@@ -30,7 +31,7 @@ namespace MyFinBackend.Services
 
         public async Task<ServiceResult<ExpenseReturnDto>> GetByIdAsync(int id, string contextUserId)
         {
-            var expense = await db.Expenses.FindAsync(id);
+            var expense = await db.Expenses.Include(x => x.Group).FirstOrDefaultAsync(x => x.Id == id);
             if (expense == null || expense.UserId != contextUserId)
                 return ServiceResult<ExpenseReturnDto>.Fail(ServiceError.NotFound);
 
@@ -88,6 +89,33 @@ namespace MyFinBackend.Services
             return ServiceResult<List<ExpenseReturnDto>>.Ok(bulk.Expenses.Select(ToDto).ToList());
         }
 
+        public async Task<ServiceResult<ExpenseReturnDto>> UpdateGroupAsync(int expenseId, UpdateExpenseGroupDto dto, string contextUserId)
+        {
+            var expense = await db.Expenses.Include(x => x.Group).FirstOrDefaultAsync(x => x.Id == expenseId);
+            if (expense == null || expense.UserId != contextUserId)
+                return ServiceResult<ExpenseReturnDto>.Fail(ServiceError.NotFound);
+
+            expense.GroupId = dto.GroupId;
+
+            var existingSplit = await db.ExpenseSplitConfigs.FindAsync(expenseId);
+            if (dto.GroupId == null)
+            {
+                if (existingSplit != null)
+                    db.ExpenseSplitConfigs.Remove(existingSplit);
+            }
+            else if (dto.SplitType.HasValue)
+            {
+                if (existingSplit == null)
+                    db.ExpenseSplitConfigs.Add(new ExpenseSplitConfig { ExpenseId = expenseId, SplitType = dto.SplitType.Value });
+                else
+                    existingSplit.SplitType = dto.SplitType.Value;
+            }
+
+            await db.SaveChangesAsync();
+            await db.Entry(expense).Reference(x => x.Group).LoadAsync();
+            return ServiceResult<ExpenseReturnDto>.Ok(ToDto(expense));
+        }
+
         public async Task<ServiceResult> DeleteAsync(int expenseId, string contextUserId)
         {
             var expense = await db.Expenses.FindAsync(expenseId);
@@ -105,7 +133,9 @@ namespace MyFinBackend.Services
             Description = x.Description,
             Date = x.Date,
             Value = x.Value,
-            CategoryId = x.CategoryId
+            CategoryId = x.CategoryId,
+            GroupId = x.GroupId,
+            GroupName = x.Group?.Name
         };
     }
 }

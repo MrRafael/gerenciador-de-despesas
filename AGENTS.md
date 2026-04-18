@@ -112,6 +112,7 @@ Services/      # Lógica de negócio (IExpenseService, IGroupService, IExpenseCa
 | Expenses | GET | `/api/users/{userId}/expenses/by-range?startDate=&endDate=` |
 | Expenses | POST | `/api/expenses` — cria despesa (aceita `groupId?` e `splitType?`) |
 | Expenses | POST | `/api/expenses/bulk` |
+| Expenses | PATCH | `/api/expenses/{id}/group` — vincula/desvincula grupo (body: `groupId?`, `splitType?`) |
 | Expenses | DELETE | `/api/expenses/{expenseId}` |
 | ExpenseCategory | GET | `/api/users/{userId}/expensecategory` |
 | ExpenseCategory | POST | `/api/expensecategory` |
@@ -162,7 +163,7 @@ Os serviços retornam `ServiceResult<T>` ou `ServiceResult` (sem dados). O enum 
 - Remoção do Firebase (ainda há código em `frontend/src/firebase/`)
 - Lógica de cálculo de divisão ainda não implementada no backend
 - Tipos Firebase ainda presentes em `frontend/src/types/index.ts` (MonthGroup, PersonalInformation, CollaboratorResult)
-- Frontend não reflete ainda os campos `GroupId` / `ExpenseSplitConfig` nas despesas
+- Lógica de cálculo de divisão ainda não implementada no backend (quanto cada membro deve pagar)
 
 ---
 

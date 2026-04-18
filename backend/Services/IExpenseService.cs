@@ -10,6 +10,7 @@ namespace MyFinBackend.Services
         Task<ServiceResult<ExpenseReturnDto>> GetByIdAsync(int id, string contextUserId);
         Task<ServiceResult<ExpenseReturnDto>> CreateWithSplitAsync(CreateExpenseDto dto, string contextUserId);
         Task<ServiceResult<List<ExpenseReturnDto>>> CreateBulkAsync(BulkExpenseToSaveDto bulk, string contextUserId);
+        Task<ServiceResult<ExpenseReturnDto>> UpdateGroupAsync(int expenseId, UpdateExpenseGroupDto dto, string contextUserId);
         Task<ServiceResult> DeleteAsync(int expenseId, string contextUserId);
     }
 }

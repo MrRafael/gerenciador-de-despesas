@@ -1,4 +1,4 @@
-import type { Expense, ExpenseSaveDto } from "@/types";
+import type { Expense, ExpenseSaveDto, SplitType } from "@/types";
 import axios from "axios";
 
 export const getExpensesByUserIdAndRange = async (userId: string, startDate: string, endDate: string): Promise<Expense[] | null> => {
@@ -17,6 +17,11 @@ export const createExpense = async (expense: Omit<ExpenseSaveDto, 'date'> & { da
 
 export const createExpenses = async (expenses: Expense[]): Promise<Expense[]> => {
     const { data } = await axios.post('api/expenses/bulk', { expenses });
+    return data;
+}
+
+export const updateExpenseGroup = async (expenseId: number, groupId: number | null, splitType?: SplitType): Promise<Expense> => {
+    const { data } = await axios.patch(`api/expenses/${expenseId}/group`, { groupId, splitType });
     return data;
 }
 

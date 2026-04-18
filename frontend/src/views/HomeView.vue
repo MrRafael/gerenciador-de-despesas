@@ -1,21 +1,30 @@
 <script setup lang="ts">
 import { ref, onBeforeMount, h } from 'vue';
-import { NDataTable, NTag, NIcon, useDialog, type DataTableColumns } from 'naive-ui';
-import type { Expense } from '@/types';
+import { NDataTable, NTag, NIcon, NSelect, useDialog, useMessage, type DataTableColumns } from 'naive-ui';
+import type { Expense, MemberGroup } from '@/types';
+import { SplitType } from '@/types';
 import { useMonthStore } from '@/stores/currentMonth';
 import { useYearStore } from '@/stores/currentYear';
 import { useUserStore } from '@/stores/user';
 import { formatCurrency } from '../util'
 import { DeleteOutlineFilled } from '@vicons/material';
 import { getCategoriesByUserId } from '@/api/category';
-import { deleteExpense, getExpensesByUserIdAndRange } from '@/api/expense';
+import { deleteExpense, getExpensesByUserIdAndRange, updateExpenseGroup } from '@/api/expense';
+import { getMyGroups } from '@/api/groups';
 
 const dialog = useDialog();
+const message = useMessage();
 const sUser = useUserStore();
 const sMonth = useMonthStore();
 const sYear = useYearStore();
 const options = ref<{ label: string, value: number }[]>([]);
+const groups = ref<MemberGroup[]>([]);
 const expenses = ref<Expense[]>([]);
+
+const groupOptions = () => [
+    { label: 'Pessoal (sem grupo)', value: null as number | null },
+    ...groups.value.map(g => ({ label: g.name, value: g.id as number | null }))
+];
 
 sMonth.$onAction(({ after }) => {
     after(() => {
@@ -35,8 +44,12 @@ async function syncExpenses() {
 
 const loadData = async () => {
     if (sUser.user?.id) {
-        const cat = await getCategoriesByUserId(sUser.user.id);
+        const [cat, grp] = await Promise.all([
+            getCategoriesByUserId(sUser.user.id),
+            getMyGroups(sUser.user.id),
+        ]);
         if (cat) options.value = cat.map(x => ({ label: x.name!, value: x.id! }));
+        if (grp) groups.value = grp;
     }
 }
 
@@ -57,6 +70,16 @@ const handleDelete = (index: number) => {
             await syncExpenses();
         },
     });
+}
+
+const handleGroupChange = async (expense: Expense, index: number, groupId: number | null) => {
+    try {
+        const splitType = groupId != null ? SplitType.Equal : undefined;
+        const updated = await updateExpenseGroup(expense.id!, groupId, splitType);
+        expenses.value[index] = { ...expenses.value[index], groupId: updated.groupId, groupName: updated.groupName };
+    } catch {
+        message.error('Erro ao atualizar grupo da despesa');
+    }
 }
 
 function createColumns(): DataTableColumns<Expense> {
@@ -84,6 +107,18 @@ function createColumns(): DataTableColumns<Expense> {
             key: 'categoryId',
             render(row) {
                 return h(NTag, {}, () => options.value.find(x => x.value == row.categoryId)?.label);
+            }
+        },
+        {
+            title: 'Grupo',
+            key: 'groupId',
+            render(row, index) {
+                return h(NSelect, {
+                    value: row.groupId ?? null,
+                    options: groupOptions(),
+                    style: { minWidth: '160px' },
+                    onUpdateValue: (v: number | null) => handleGroupChange(row, index, v)
+                });
             }
         },
         {

@@ -172,5 +172,91 @@ namespace MyFinBackend.Tests.Services
             Assert.True(result.IsSuccess);
             Assert.Equal(2, db.Expenses.Count());
         }
+
+        [Fact]
+        public async Task UpdateGroup_ReturnsNotFound_WhenExpenseDoesNotExist()
+        {
+            using var db = DbContextFactory.Create();
+            var service = new ExpenseService(db);
+
+            var result = await service.UpdateGroupAsync(999, new UpdateExpenseGroupDto { GroupId = 1 }, "user-a");
+
+            Assert.Equal(ServiceError.NotFound, result.Error);
+        }
+
+        [Fact]
+        public async Task UpdateGroup_ReturnsNotFound_WhenNotOwner()
+        {
+            using var db = DbContextFactory.Create();
+            var expense = MakeExpense("user-a");
+            db.Expenses.Add(expense);
+            await db.SaveChangesAsync();
+            var service = new ExpenseService(db);
+
+            var result = await service.UpdateGroupAsync(expense.Id, new UpdateExpenseGroupDto { GroupId = 1 }, "user-b");
+
+            Assert.Equal(ServiceError.NotFound, result.Error);
+        }
+
+        [Fact]
+        public async Task UpdateGroup_AssignsGroupAndCreatesSplitConfig_WhenOwner()
+        {
+            using var db = DbContextFactory.Create();
+            var group = new Group { Name = "Familia", UserId = "user-a" };
+            db.Groups.Add(group);
+            var expense = MakeExpense("user-a");
+            db.Expenses.Add(expense);
+            await db.SaveChangesAsync();
+            var service = new ExpenseService(db);
+
+            var result = await service.UpdateGroupAsync(expense.Id,
+                new UpdateExpenseGroupDto { GroupId = group.Id, SplitType = SplitType.Equal }, "user-a");
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(group.Id, result.Data!.GroupId);
+            Assert.Equal("Familia", result.Data.GroupName);
+            Assert.Single(db.ExpenseSplitConfigs);
+        }
+
+        [Fact]
+        public async Task UpdateGroup_RemovesGroupAndSplitConfig_WhenGroupIdIsNull()
+        {
+            using var db = DbContextFactory.Create();
+            var group = new Group { Name = "Familia", UserId = "user-a" };
+            db.Groups.Add(group);
+            var expense = MakeExpense("user-a");
+            expense.GroupId = group.Id;
+            db.Expenses.Add(expense);
+            db.ExpenseSplitConfigs.Add(new ExpenseSplitConfig { Expense = expense, SplitType = SplitType.Equal });
+            await db.SaveChangesAsync();
+            var service = new ExpenseService(db);
+
+            var result = await service.UpdateGroupAsync(expense.Id,
+                new UpdateExpenseGroupDto { GroupId = null }, "user-a");
+
+            Assert.True(result.IsSuccess);
+            Assert.Null(result.Data!.GroupId);
+            Assert.Empty(db.ExpenseSplitConfigs);
+        }
+
+        [Fact]
+        public async Task UpdateGroup_UpdatesSplitType_WhenGroupAlreadyAssigned()
+        {
+            using var db = DbContextFactory.Create();
+            var group = new Group { Name = "Familia", UserId = "user-a" };
+            db.Groups.Add(group);
+            var expense = MakeExpense("user-a");
+            expense.GroupId = group.Id;
+            db.Expenses.Add(expense);
+            db.ExpenseSplitConfigs.Add(new ExpenseSplitConfig { Expense = expense, SplitType = SplitType.Equal });
+            await db.SaveChangesAsync();
+            var service = new ExpenseService(db);
+
+            var result = await service.UpdateGroupAsync(expense.Id,
+                new UpdateExpenseGroupDto { GroupId = group.Id, SplitType = SplitType.Proportional }, "user-a");
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(SplitType.Proportional, db.ExpenseSplitConfigs.Single().SplitType);
+        }
     }
 }

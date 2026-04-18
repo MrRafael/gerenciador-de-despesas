@@ -56,6 +56,17 @@ namespace MyFinBackend.Controller
             return StatusCode(StatusCodes.Status201Created, result.Data);
         }
 
+        [HttpPatch("{id}/group")]
+        public async Task<ActionResult<ExpenseReturnDto>> UpdateExpenseGroup(int id, UpdateExpenseGroupDto dto)
+        {
+            var result = await expenseService.UpdateGroupAsync(id, dto, GetUserId());
+            return result.Error switch
+            {
+                ServiceError.NotFound => NotFound(),
+                _ => Ok(result.Data)
+            };
+        }
+
         [HttpDelete("{expenseId}")]
         public async Task<ActionResult> DeleteExpense(int expenseId)
         {
