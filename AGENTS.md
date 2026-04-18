@@ -10,7 +10,7 @@ Aplicativo pessoal de finanças usado pelo casal para registrar gastos mensais e
 
 ## Estrutura do repositório
 
-```
+```text
 financas/
 +-- frontend/    # Vue 3 + TypeScript (PWA)
 +-- backend/     # ASP.NET Core 9 + PostgreSQL
@@ -23,6 +23,7 @@ financas/
 **Stack:** Vue 3, TypeScript, Vite, Pinia, Naive UI, Axios, Clerk (auth)
 
 **Como rodar:**
+
 ```bash
 cd frontend
 npm install
@@ -30,36 +31,37 @@ npm run dev     # http://localhost:5173
 ```
 
 **Estrutura relevante:**
-```
+
+```text
 src/
-├── api/           # Chamadas HTTP ao backend (axios) -um arquivo por domínio
+├── api/           # Chamadas HTTP ao backend (axios) - um arquivo por domínio
 ├── components/    # Componentes reutilizáveis
 ├── views/         # Páginas (mapeadas no router)
 ├── stores/        # Pinia: user, currentMonth, currentYear
 ├── types/         # Interfaces TypeScript de todos os domínios
-├── interceptor/   # Axios interceptor -injeta Bearer token do Clerk
+├── interceptor/   # Axios interceptor - injeta Bearer token do Clerk
 └── router/        # Vue Router
 ```
 
 **Rotas:**
 
-- `/` -Home (lista de gastos do mês)
-- `/addExpense` -Adicionar gasto
-- `/import` -Importar CSV
-- `/groups` -Gerenciar grupos
+- `/` - Home (lista de gastos do mês)
+- `/addExpense` - Adicionar gasto
+- `/import` - Importar CSV
+- `/groups` - Gerenciar grupos
 
 **Autenticação:** Clerk. O token JWT é injetado automaticamente em todas as requests via `src/interceptor/axios.ts`.
 
 **Estado global (Pinia):**
 
-- `useUserStore` -dados do usuário logado
-- `useMonthStore` -mês selecionado (1–12)
-- `useYearStore` -ano selecionado
+- `useUserStore` - dados do usuário logado
+- `useMonthStore` - mês selecionado (1–12)
+- `useYearStore` - ano selecionado
 
 **Variáveis de ambiente (`.env`):**
 
-- `VITE_BACKEND_URL` -URL base do backend (ex: `https://localhost:7114`)
-- `VITE_CLERK_PUBLISHABLE_KEY` -chave pública do Clerk
+- `VITE_BACKEND_URL` - URL base do backend (ex: `https://localhost:7114`)
+- `VITE_CLERK_PUBLISHABLE_KEY` - chave pública do Clerk
 
 **Observação:** Ainda há código Firebase em `src/firebase/` sendo eliminado gradualmente. Não adicionar novas dependências do Firebase.
 
@@ -70,34 +72,39 @@ src/
 **Stack:** ASP.NET Core 9, Entity Framework Core, PostgreSQL (Npgsql), Clerk (auth)
 
 **Como rodar:**
+
 ```bash
 cd backend
 dotnet run     # https://localhost:7114
 ```
 
 **Estrutura:**
-```
-Auth/          # ClerkAuthorizeAttribute -valida JWT do Clerk em cada endpoint
-Controller/    # Controllers REST (sem camada de serviço -acesso direto ao DbContext)
+
+```text
+Auth/          # ClerkAuthorizeAttribute - valida JWT do Clerk em cada endpoint
+Controller/    # Controllers REST finos - delegam para Services/
 Database/      # FinanceContext (EF Core DbContext)
 Dto/           # DTOs de entrada e saída
 Migrations/    # Migrations do EF Core
 Model/         # Entidades do banco
+Services/      # Lógica de negócio (IExpenseService, IGroupService, IExpenseCategoryService)
 ```
 
 **Modelos principais:**
 
-- `User` -usuário (Id string, Name, Email, Photo)
-- `Expense` -gasto (Description, Value, Date, CategoryId, UserId)
-- `ExpenseCategory` -categoria (Name, UserId)
-- `Group` -grupo de divisão (Name, UserId dono)
-- `GroupMember` -membro de grupo (GroupId + UserId, IsActive)
+- `User` - usuário (Id string, Name, Email, Photo)
+- `Expense` - gasto (Description, Value, Date, CategoryId, UserId, GroupId?)
+- `ExpenseCategory` - categoria (Name, UserId)
+- `ExpenseSplitConfig` - tipo de divisão por despesa (ExpenseId, SplitType)
+- `Group` - grupo de divisão (Name, UserId dono)
+- `GroupMember` - membro de grupo (GroupId + UserId, IsActive)
+- `GroupMemberConfig` - config do membro no grupo (GroupId, UserId, Salary?)
 
 **Endpoints:**
 
 | Controller | Método | Rota |
-|---|---|---|
-| Users | GET | `/api/users` -usuário atual |
+| --- | --- | --- |
+| Users | GET | `/api/users` - usuário atual |
 | Users | GET | `/api/users/{id}` |
 | Users | POST | `/api/users` |
 | Users | PUT | `/api/users/{id}` |
@@ -112,8 +119,8 @@ Model/         # Entidades do banco
 | GroupMember | GET | `/api/users/{userId}/groupmember` |
 | GroupMember | GET | `/api/users/{userId}/groupmember/invites` |
 | GroupMember | GET | `/api/groups/{groupId}/groupmember` |
-| GroupMember | POST | `/api/groupmember` -criar grupo |
-| GroupMember | POST | `/api/groupmember/NewMember` -convidar por email |
+| GroupMember | POST | `/api/groupmember` - criar grupo |
+| GroupMember | POST | `/api/groupmember/NewMember` - convidar por email |
 | GroupMember | PUT | `/api/groupmember/Accept` |
 | GroupMember | DELETE | `/api/groupmember/Refuse` |
 | GroupMember | DELETE | `/api/groupmember/Member` |
@@ -123,11 +130,11 @@ Model/         # Entidades do banco
 
 **Configuração (`appsettings.json`):**
 
-- `ConnectionStrings:AppDbContext` -connection string PostgreSQL
-- `frontendUrl` -origem permitida no CORS
-- `clerkApiKey` -chave do Clerk
+- `ConnectionStrings:AppDbContext` - connection string PostgreSQL
+- `frontendUrl` - origem permitida no CORS
+- `clerkApiKey` - chave do Clerk
 
-**Padrão arquitetural atual:** Controllers são finos — recebem a request, delegam para a camada de serviço (`Services/`) e mapeiam o `ServiceResult` para o status HTTP. Toda lógica de negócio e acesso ao banco fica nos serviços.
+**Padrão arquitetural:** Controllers são finos — recebem a request, delegam para a camada de serviço (`Services/`) e mapeiam o `ServiceResult` para o status HTTP. Toda lógica de negócio e acesso ao banco fica nos serviços.
 
 **Camada de serviços (`backend/Services/`):**
 
@@ -143,7 +150,8 @@ Os serviços retornam `ServiceResult<T>` ou `ServiceResult` (sem dados). O enum 
 
 - Cada usuário tem suas próprias categorias e gastos
 - Grupos permitem que dois usuários compartilhem gastos do mês
-- A divisão dos gastos é proporcional ao salário de cada membro (quem ganha mais paga mais)
+- A divisão dos gastos é configurável por despesa via `ExpenseSplitConfig` (Equal, Proportional, Manual)
+- Para divisão proporcional, o salário de cada membro fica em `GroupMemberConfig`
 - Convites para grupos são feitos por email; o convidado precisa aceitar
 
 ---
@@ -151,8 +159,27 @@ Os serviços retornam `ServiceResult<T>` ou `ServiceResult` (sem dados). O enum 
 ## O que está em andamento / incompleto
 
 - Remoção do Firebase (ainda há código em `frontend/src/firebase/`)
-- A lógica de cálculo proporcional por salário ainda não está implementada no backend
+- Lógica de cálculo de divisão ainda não implementada no backend
 - Tipos Firebase ainda presentes em `frontend/src/types/index.ts` (MonthGroup, PersonalInformation, CollaboratorResult)
+- Frontend não reflete ainda os campos `GroupId` / `ExpenseSplitConfig` nas despesas
+
+---
+
+## Segurança — Credenciais
+
+**Regra absoluta: nenhuma credencial jamais deve entrar no repositório**, nem em commits, nem em histórico.
+
+- `backend/appsettings.json` — commitado com valores `"SEE_ENVIRONMENT"` como placeholder
+- `backend/appsettings.Development.json` — **gitignored**, contém credenciais reais para dev local. Preencha com os valores reais após clonar.
+- Em produção (Docker): passe as credenciais como variáveis de ambiente. O ASP.NET Core as lê automaticamente sobrepondo o `appsettings.json`:
+
+```yaml
+environment:
+  - ConnectionStrings__AppDbContext=Host=...;Password=...
+  - clerkApiKey=...
+```
+
+- Se suspeitar que uma credencial foi commitada: rotacione imediatamente antes de limpar o histórico.
 
 ---
 
@@ -163,13 +190,17 @@ Os serviços retornam `ServiceResult<T>` ou `ServiceResult` (sem dados). O enum 
 - Testes cobrem os serviços diretamente (não os controllers)
 - Rodar com: `cd backend && dotnet test`
 
-**Regra crítica sobre testes existentes:** Nunca altere um teste existente sem solicitação explícita do usuário. Se uma implementação quebra um teste, informe o motivo antes de alterar — ex: *"é necessário alterar o teste X por A e B razões"* — e aguarde confirmação. Testes que passam são contrato estabelecido.
+**Regras sobre testes:**
+
+- Toda nova implementação de lógica de negócio deve incluir testes cobrindo os casos relevantes.
+- Nunca altere um teste existente sem solicitação explícita do usuário. Se uma implementação quebra um teste, informe o motivo antes de alterar — ex: *"é necessário alterar o teste X por A e B razões"* — e aguarde confirmação. Testes que passam são contrato estabelecido.
 
 ---
 
 ## Convenções
 
-- Frontend em português brasileiro na UI, código em inglês
-- Backend: nomes de classes/métodos em inglês, C# padrão PascalCase
-- Commits descritivos no padrão `tipo(escopo): descrição` seguindo Conventional Commits
-- Não usar Firebase para nada novo
+- **UI:** português brasileiro; código (variáveis, funções, classes) em inglês.
+- **Backend:** C# padrão PascalCase para classes e métodos.
+- **Commits:** seguir [Conventional Commits](https://www.conventionalcommits.org/) — `tipo(escopo): descrição`. Tipos comuns: `feat`, `fix`, `chore`, `refactor`, `docs`, `test`. Mensagem curta e objetiva, sem co-autoria automática.
+- **Não usar Firebase** para nada novo.
+- **Atualizar este arquivo** sempre que houver mudança relevante de arquitetura, novo padrão, nova regra de negócio ou novo domínio. O AGENTS.md é o contrato de contexto entre conversas — se não está aqui, o próximo agente não saberá.

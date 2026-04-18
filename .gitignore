@@ -27,6 +27,7 @@ packages/
 publish/
 
 # Secrets & local config
+appsettings.Development.json
 appsettings.*.local.json
 *.pfx
 *.p12
