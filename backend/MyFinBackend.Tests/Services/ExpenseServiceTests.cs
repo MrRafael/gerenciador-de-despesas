@@ -1,3 +1,4 @@
+using MyFinBackend.Database;
 using MyFinBackend.Dto;
 using MyFinBackend.Model;
 using MyFinBackend.Services;
@@ -7,6 +8,9 @@ namespace MyFinBackend.Tests.Services
 {
     public class ExpenseServiceTests
     {
+        private static ExpenseService MakeService(FinanceContext db) =>
+            new(db, new MonthCloseService(db, new SplitCalculatorService(db)));
+
         private static Expense MakeExpense(string userId, DateOnly? date = null) => new()
         {
             Description = "Teste",
@@ -20,7 +24,7 @@ namespace MyFinBackend.Tests.Services
         public async Task GetByUserId_ReturnsUnauthorized_WhenUserMismatch()
         {
             using var db = DbContextFactory.Create();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.GetByUserIdAsync("user-a", "user-b");
 
@@ -32,7 +36,7 @@ namespace MyFinBackend.Tests.Services
         public async Task GetByUserId_ReturnsEmptyList_WhenNoExpenses()
         {
             using var db = DbContextFactory.Create();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.GetByUserIdAsync("user-a", "user-a");
 
@@ -46,7 +50,7 @@ namespace MyFinBackend.Tests.Services
             using var db = DbContextFactory.Create();
             db.Expenses.Add(MakeExpense("user-a"));
             await db.SaveChangesAsync();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.GetByUserIdAsync("user-a", "user-a");
 
@@ -58,7 +62,7 @@ namespace MyFinBackend.Tests.Services
         public async Task GetByDateRange_ReturnsUnauthorized_WhenUserMismatch()
         {
             using var db = DbContextFactory.Create();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.GetByDateRangeAsync("user-a", "user-b",
                 DateOnly.Parse("2024-01-01"), DateOnly.Parse("2024-01-31"));
@@ -73,7 +77,7 @@ namespace MyFinBackend.Tests.Services
             db.Expenses.Add(MakeExpense("user-a", DateOnly.Parse("2024-01-15")));
             db.Expenses.Add(MakeExpense("user-a", DateOnly.Parse("2024-02-15")));
             await db.SaveChangesAsync();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.GetByDateRangeAsync("user-a", "user-a",
                 DateOnly.Parse("2024-01-01"), DateOnly.Parse("2024-01-31"));
@@ -86,7 +90,7 @@ namespace MyFinBackend.Tests.Services
         public async Task Create_ReturnsUnauthorized_WhenUserMismatch()
         {
             using var db = DbContextFactory.Create();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.CreateAsync(MakeExpense("user-a"), "user-b");
 
@@ -97,7 +101,7 @@ namespace MyFinBackend.Tests.Services
         public async Task Create_ReturnsDto_WhenValid()
         {
             using var db = DbContextFactory.Create();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.CreateAsync(MakeExpense("user-a"), "user-a");
 
@@ -109,7 +113,7 @@ namespace MyFinBackend.Tests.Services
         public async Task Delete_ReturnsUnauthorized_WhenExpenseNotFound()
         {
             using var db = DbContextFactory.Create();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.DeleteAsync(999, "user-a");
 
@@ -123,7 +127,7 @@ namespace MyFinBackend.Tests.Services
             var expense = MakeExpense("user-a");
             db.Expenses.Add(expense);
             await db.SaveChangesAsync();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.DeleteAsync(expense.Id, "user-b");
 
@@ -137,7 +141,7 @@ namespace MyFinBackend.Tests.Services
             var expense = MakeExpense("user-a");
             db.Expenses.Add(expense);
             await db.SaveChangesAsync();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.DeleteAsync(expense.Id, "user-a");
 
@@ -149,7 +153,7 @@ namespace MyFinBackend.Tests.Services
         public async Task CreateBulk_ReturnsUnauthorized_WhenUserMismatch()
         {
             using var db = DbContextFactory.Create();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
             var bulk = new BulkExpenseToSaveDto { Expenses = [MakeExpense("user-a")] };
 
             var result = await service.CreateBulkAsync(bulk, "user-b");
@@ -161,7 +165,7 @@ namespace MyFinBackend.Tests.Services
         public async Task CreateBulk_PersistsAll_WhenValid()
         {
             using var db = DbContextFactory.Create();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
             var bulk = new BulkExpenseToSaveDto
             {
                 Expenses = [MakeExpense("user-a"), MakeExpense("user-a")]
@@ -177,7 +181,7 @@ namespace MyFinBackend.Tests.Services
         public async Task UpdateGroup_ReturnsNotFound_WhenExpenseDoesNotExist()
         {
             using var db = DbContextFactory.Create();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.UpdateGroupAsync(999, new UpdateExpenseGroupDto { GroupId = 1 }, "user-a");
 
@@ -191,7 +195,7 @@ namespace MyFinBackend.Tests.Services
             var expense = MakeExpense("user-a");
             db.Expenses.Add(expense);
             await db.SaveChangesAsync();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.UpdateGroupAsync(expense.Id, new UpdateExpenseGroupDto { GroupId = 1 }, "user-b");
 
@@ -210,7 +214,7 @@ namespace MyFinBackend.Tests.Services
             var expense = MakeExpense("user-a");
             db.Expenses.Add(expense);
             await db.SaveChangesAsync();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.UpdateGroupAsync(expense.Id,
                 new UpdateExpenseGroupDto { GroupId = group.Id, GroupSplitConfigId = splitConfig.Id }, "user-a");
@@ -236,7 +240,7 @@ namespace MyFinBackend.Tests.Services
             await db.SaveChangesAsync();
             db.ExpenseSplitConfigs.Add(new ExpenseSplitConfig { Expense = expense, GroupSplitConfigId = splitConfig.Id });
             await db.SaveChangesAsync();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.UpdateGroupAsync(expense.Id,
                 new UpdateExpenseGroupDto { GroupId = null }, "user-a");
@@ -262,7 +266,7 @@ namespace MyFinBackend.Tests.Services
             await db.SaveChangesAsync();
             db.ExpenseSplitConfigs.Add(new ExpenseSplitConfig { Expense = expense, GroupSplitConfigId = splitConfigA.Id });
             await db.SaveChangesAsync();
-            var service = new ExpenseService(db);
+            var service = MakeService(db);
 
             var result = await service.UpdateGroupAsync(expense.Id,
                 new UpdateExpenseGroupDto { GroupId = group.Id, GroupSplitConfigId = splitConfigB.Id }, "user-a");

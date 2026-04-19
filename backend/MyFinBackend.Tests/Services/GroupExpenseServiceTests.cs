@@ -1,3 +1,4 @@
+using MyFinBackend.Database;
 using MyFinBackend.Model;
 using MyFinBackend.Services;
 using MyFinBackend.Tests.Helpers;
@@ -6,6 +7,9 @@ namespace MyFinBackend.Tests.Services
 {
     public class GroupExpenseServiceTests
     {
+        private static GroupService MakeService(FinanceContext db) =>
+            new(db, new GroupSplitConfigService(db));
+
         private static User MakeUser(string id, string email) => new()
         {
             Id = id,
@@ -38,7 +42,7 @@ namespace MyFinBackend.Tests.Services
             db.Users.Add(owner);
             db.Groups.Add(group);
             await db.SaveChangesAsync();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.GetGroupExpensesAsync(group.Id, "intruder",
                 new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31));
@@ -59,7 +63,7 @@ namespace MyFinBackend.Tests.Services
             db.Expenses.Add(MakeExpense("owner", group.Id, new DateOnly(2026, 1, 15)));
             await db.SaveChangesAsync();
 
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.GetGroupExpensesAsync(group.Id, "owner",
                 new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31));
@@ -85,7 +89,7 @@ namespace MyFinBackend.Tests.Services
             db.Expenses.Add(MakeExpense("member", group.Id, new DateOnly(2026, 1, 20)));
             await db.SaveChangesAsync();
 
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.GetGroupExpensesAsync(group.Id, "member",
                 new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31));
@@ -108,7 +112,7 @@ namespace MyFinBackend.Tests.Services
             db.GroupMembers.Add(new GroupMember { GroupId = group.Id, UserId = "invited", IsActive = false });
             await db.SaveChangesAsync();
 
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.GetGroupExpensesAsync(group.Id, "invited",
                 new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31));
@@ -130,7 +134,7 @@ namespace MyFinBackend.Tests.Services
             db.Expenses.Add(MakeExpense("owner", group.Id, new DateOnly(2026, 2, 15)));
             await db.SaveChangesAsync();
 
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.GetGroupExpensesAsync(group.Id, "owner",
                 new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31));
@@ -158,7 +162,7 @@ namespace MyFinBackend.Tests.Services
             db.ExpenseSplitConfigs.Add(new ExpenseSplitConfig { ExpenseId = expense.Id, GroupSplitConfigId = splitConfig.Id });
             await db.SaveChangesAsync();
 
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.GetGroupExpensesAsync(group.Id, "owner",
                 new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31));
@@ -180,7 +184,7 @@ namespace MyFinBackend.Tests.Services
             db.Expenses.Add(MakeExpense("owner", group.Id, new DateOnly(2026, 1, 15)));
             await db.SaveChangesAsync();
 
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.GetGroupExpensesAsync(group.Id, "owner",
                 new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31));

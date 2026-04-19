@@ -5,7 +5,7 @@ using MyFinBackend.Model;
 
 namespace MyFinBackend.Services
 {
-    public class GroupService(FinanceContext db) : IGroupService
+    public class GroupService(FinanceContext db, IGroupSplitConfigService splitConfig) : IGroupService
     {
         public async Task<ServiceResult<List<GroupMemberDto>>> GetGroupsByUserIdAsync(string userId, string contextUserId)
         {
@@ -138,6 +138,8 @@ namespace MyFinBackend.Services
             db.Entry(member).State = EntityState.Modified;
             await db.SaveChangesAsync();
 
+            await splitConfig.OnMemberJoinedAsync(invite.GroupId, invite.UserId);
+
             return ServiceResult<GroupMemberDto>.Ok(new GroupMemberDto
             {
                 Id = member.GroupId,
@@ -172,6 +174,8 @@ namespace MyFinBackend.Services
             var isSelf = member.UserId == contextUserId;
             if (!isOwner && !isSelf)
                 return ServiceResult.Fail(ServiceError.Unauthorized);
+
+            await splitConfig.OnMemberLeftAsync(member.GroupId, member.UserId);
 
             db.GroupMembers.Remove(member);
             await db.SaveChangesAsync();

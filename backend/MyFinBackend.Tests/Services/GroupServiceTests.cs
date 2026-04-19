@@ -1,3 +1,4 @@
+using MyFinBackend.Database;
 using MyFinBackend.Dto;
 using MyFinBackend.Model;
 using MyFinBackend.Services;
@@ -7,6 +8,9 @@ namespace MyFinBackend.Tests.Services
 {
     public class GroupServiceTests
     {
+        private static GroupService MakeService(FinanceContext db) =>
+            new(db, new GroupSplitConfigService(db));
+
         private static User MakeUser(string id, string email) => new()
         {
             Id = id,
@@ -24,7 +28,7 @@ namespace MyFinBackend.Tests.Services
         public async Task GetGroupsByUserId_ReturnsUnauthorized_WhenUserMismatch()
         {
             using var db = DbContextFactory.Create();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.GetGroupsByUserIdAsync("user-a", "user-b");
 
@@ -35,7 +39,7 @@ namespace MyFinBackend.Tests.Services
         public async Task GetGroupsByUserId_ReturnsNotFound_WhenUserDoesNotExist()
         {
             using var db = DbContextFactory.Create();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.GetGroupsByUserIdAsync("user-a", "user-a");
 
@@ -51,7 +55,7 @@ namespace MyFinBackend.Tests.Services
             db.Users.Add(user);
             db.Groups.Add(group);
             await db.SaveChangesAsync();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.GetGroupsByUserIdAsync("user-a", "user-a");
 
@@ -71,7 +75,7 @@ namespace MyFinBackend.Tests.Services
             await db.SaveChangesAsync();
             db.GroupMembers.Add(new GroupMember { GroupId = group.Id, UserId = "user-a", IsActive = false });
             await db.SaveChangesAsync();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.GetGroupsByUserIdAsync("user-a", "user-a");
 
@@ -83,7 +87,7 @@ namespace MyFinBackend.Tests.Services
         public async Task CreateGroup_ReturnsUnauthorized_WhenUserMismatch()
         {
             using var db = DbContextFactory.Create();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.CreateGroupAsync(MakeGroup("user-a"), "user-b");
 
@@ -94,7 +98,7 @@ namespace MyFinBackend.Tests.Services
         public async Task CreateGroup_Succeeds_WhenValid()
         {
             using var db = DbContextFactory.Create();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.CreateGroupAsync(MakeGroup("user-a"), "user-a");
 
@@ -112,7 +116,7 @@ namespace MyFinBackend.Tests.Services
             db.Users.Add(owner);
             db.Groups.Add(group);
             await db.SaveChangesAsync();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.InviteMemberAsync(
                 new MemberGrouToAddDto { GroupId = group.Id, UserEmail = "notfound@test.com" }, "owner");
@@ -131,7 +135,7 @@ namespace MyFinBackend.Tests.Services
             db.Users.AddRange(owner, other, intruder);
             db.Groups.Add(group);
             await db.SaveChangesAsync();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.InviteMemberAsync(
                 new MemberGrouToAddDto { GroupId = group.Id, UserEmail = "other@test.com" }, "intruder");
@@ -148,7 +152,7 @@ namespace MyFinBackend.Tests.Services
             db.Users.Add(owner);
             db.Groups.Add(group);
             await db.SaveChangesAsync();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.InviteMemberAsync(
                 new MemberGrouToAddDto { GroupId = group.Id, UserEmail = "owner@test.com" }, "owner");
@@ -168,7 +172,7 @@ namespace MyFinBackend.Tests.Services
             await db.SaveChangesAsync();
             db.GroupMembers.Add(new GroupMember { GroupId = group.Id, UserId = "member", IsActive = true });
             await db.SaveChangesAsync();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.InviteMemberAsync(
                 new MemberGrouToAddDto { GroupId = group.Id, UserEmail = "member@test.com" }, "owner");
@@ -186,7 +190,7 @@ namespace MyFinBackend.Tests.Services
             db.Users.AddRange(owner, member);
             db.Groups.Add(group);
             await db.SaveChangesAsync();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.InviteMemberAsync(
                 new MemberGrouToAddDto { GroupId = group.Id, UserEmail = "member@test.com" }, "owner");
@@ -200,7 +204,7 @@ namespace MyFinBackend.Tests.Services
         public async Task AcceptInvite_ReturnsUnauthorized_WhenUserMismatch()
         {
             using var db = DbContextFactory.Create();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.AcceptInviteAsync(
                 new GroupMember { GroupId = 1, UserId = "user-a" }, "user-b");
@@ -220,7 +224,7 @@ namespace MyFinBackend.Tests.Services
             await db.SaveChangesAsync();
             db.GroupMembers.Add(new GroupMember { GroupId = group.Id, UserId = "member", IsActive = false });
             await db.SaveChangesAsync();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.AcceptInviteAsync(
                 new GroupMember { GroupId = group.Id, UserId = "member" }, "member");
@@ -236,7 +240,7 @@ namespace MyFinBackend.Tests.Services
             var group = MakeGroup("owner");
             db.Groups.Add(group);
             await db.SaveChangesAsync();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.DeleteGroupAsync(group.Id, "intruder");
 
@@ -250,7 +254,7 @@ namespace MyFinBackend.Tests.Services
             var group = MakeGroup("owner");
             db.Groups.Add(group);
             await db.SaveChangesAsync();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.DeleteGroupAsync(group.Id, "owner");
 
@@ -270,7 +274,7 @@ namespace MyFinBackend.Tests.Services
             await db.SaveChangesAsync();
             db.GroupMembers.Add(new GroupMember { GroupId = group.Id, UserId = "member", IsActive = true });
             await db.SaveChangesAsync();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.DeleteMemberAsync("member", group.Id, "intruder");
 
@@ -289,7 +293,7 @@ namespace MyFinBackend.Tests.Services
             await db.SaveChangesAsync();
             db.GroupMembers.Add(new GroupMember { GroupId = group.Id, UserId = "member", IsActive = true });
             await db.SaveChangesAsync();
-            var service = new GroupService(db);
+            var service = MakeService(db);
 
             var result = await service.DeleteMemberAsync("member", group.Id, "owner");
 

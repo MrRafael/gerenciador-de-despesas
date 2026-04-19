@@ -5,7 +5,7 @@ using MyFinBackend.Model;
 
 namespace MyFinBackend.Services
 {
-    public class ExpenseService(FinanceContext db) : IExpenseService
+    public class ExpenseService(FinanceContext db, IMonthCloseService monthClose) : IExpenseService
     {
         public async Task<ServiceResult<List<ExpenseReturnDto>>> GetByUserIdAsync(string userId, string contextUserId)
         {
@@ -63,6 +63,9 @@ namespace MyFinBackend.Services
                 GroupId = dto.GroupId
             };
 
+            if (dto.GroupId.HasValue && await monthClose.IsClosedMonthAsync(dto.GroupId.Value, dto.Date.Month, dto.Date.Year))
+                return ServiceResult<ExpenseReturnDto>.Fail(ServiceError.Conflict);
+
             db.Expenses.Add(expense);
             await db.SaveChangesAsync();
 
@@ -94,6 +97,9 @@ namespace MyFinBackend.Services
             var expense = await db.Expenses.Include(x => x.Group).FirstOrDefaultAsync(x => x.Id == expenseId);
             if (expense == null || expense.UserId != contextUserId)
                 return ServiceResult<ExpenseReturnDto>.Fail(ServiceError.NotFound);
+
+            if (dto.GroupId.HasValue && await monthClose.IsClosedMonthAsync(dto.GroupId.Value, expense.Date.Month, expense.Date.Year))
+                return ServiceResult<ExpenseReturnDto>.Fail(ServiceError.Conflict);
 
             expense.GroupId = dto.GroupId;
 
