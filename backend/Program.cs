@@ -19,6 +19,7 @@ builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<IGroupService, GroupService>();
 builder.Services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
 builder.Services.AddScoped<IGroupSplitConfigService, GroupSplitConfigService>();
+builder.Services.AddScoped<ISplitCalculatorService, SplitCalculatorService>();
 
 builder.Services.AddCors(options =>
 {
