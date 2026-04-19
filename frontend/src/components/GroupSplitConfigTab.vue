@@ -149,8 +149,12 @@ async function removeConfig(configId: number) {
         await loadData();
         emit('configsChanged');
         message.success('Configuração removida');
-    } catch {
-        message.error('Não é possível remover a única configuração');
+    } catch (err: any) {
+        if (err?.response?.status === 409) {
+            message.error('Não é possível remover a única configuração');
+        } else {
+            message.error('Erro ao remover configuração');
+        }
     }
 }
 

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using MyFinBackend.Database;
 using MyFinBackend.Dto;
 using MyFinBackend.Model;
@@ -260,6 +261,21 @@ namespace MyFinBackend.Tests.Services
 
             Assert.True(result.IsSuccess);
             Assert.Empty(db.Groups);
+        }
+
+        [Fact]
+        public async Task DeleteGroup_SoftDeletes_RecordRemainsInDb()
+        {
+            using var db = DbContextFactory.Create();
+            var group = MakeGroup("owner");
+            db.Groups.Add(group);
+            await db.SaveChangesAsync();
+            var service = MakeService(db);
+
+            await service.DeleteGroupAsync(group.Id, "owner");
+
+            var raw = db.Groups.IgnoreQueryFilters().Single(g => g.Id == group.Id);
+            Assert.True(raw.IsDeleted);
         }
 
         [Fact]

@@ -224,7 +224,7 @@ namespace MyFinBackend.Services
             if (group.UserId != contextUserId)
                 return ServiceResult.Fail(ServiceError.Unauthorized);
 
-            db.Groups.Remove(group);
+            group.IsDeleted = true;
             await db.SaveChangesAsync();
             return ServiceResult.Ok();
         }

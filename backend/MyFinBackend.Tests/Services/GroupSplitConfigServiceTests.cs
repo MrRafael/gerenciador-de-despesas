@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using MyFinBackend.Database;
 using MyFinBackend.Dto;
 using MyFinBackend.Model;
@@ -244,6 +245,42 @@ namespace MyFinBackend.Tests.Services
 
             Assert.True(result.IsSuccess);
             Assert.Single(db.GroupSplitConfigs);
+        }
+
+        [Fact]
+        public async Task Delete_SoftDeletes_RecordRemainsInDb()
+        {
+            var (db, group) = await SetupGroupWithOwnerAsync("owner");
+            db.GroupSplitConfigs.Add(new GroupSplitConfig { GroupId = group.Id, SplitType = SplitType.Equal, IsDefault = true });
+            db.GroupSplitConfigs.Add(new GroupSplitConfig { GroupId = group.Id, SplitType = SplitType.Proportional, IsDefault = false });
+            await db.SaveChangesAsync();
+            var configId = db.GroupSplitConfigs.First(c => c.SplitType == SplitType.Proportional).Id;
+            var service = new GroupSplitConfigService(db);
+
+            await service.DeleteAsync(configId, "owner");
+
+            var raw = db.GroupSplitConfigs.IgnoreQueryFilters().Single(c => c.Id == configId);
+            Assert.True(raw.IsDeleted);
+        }
+
+        [Fact]
+        public async Task Delete_Succeeds_WhenConfigIsInUseByExpense()
+        {
+            var (db, group) = await SetupGroupWithOwnerAsync("owner");
+            db.GroupSplitConfigs.Add(new GroupSplitConfig { GroupId = group.Id, SplitType = SplitType.Equal, IsDefault = true });
+            db.GroupSplitConfigs.Add(new GroupSplitConfig { GroupId = group.Id, SplitType = SplitType.Proportional, IsDefault = false });
+            await db.SaveChangesAsync();
+            var configToDelete = db.GroupSplitConfigs.First(c => c.SplitType == SplitType.Proportional);
+            var expense = new Expense { Description = "Teste", Value = 100, Date = new DateOnly(2026, 1, 1), UserId = "owner", CategoryId = 1, GroupId = group.Id };
+            db.Expenses.Add(expense);
+            await db.SaveChangesAsync();
+            db.ExpenseSplitConfigs.Add(new ExpenseSplitConfig { ExpenseId = expense.Id, GroupSplitConfigId = configToDelete.Id });
+            await db.SaveChangesAsync();
+            var service = new GroupSplitConfigService(db);
+
+            var result = await service.DeleteAsync(configToDelete.Id, "owner");
+
+            Assert.True(result.IsSuccess);
         }
 
         [Fact]

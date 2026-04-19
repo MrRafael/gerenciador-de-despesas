@@ -9,6 +9,8 @@
 
         public User? User { get; set; } = null!;
 
+        public bool IsDeleted { get; set; }
+
         public ICollection<GroupMember> Members { get; set; } = new List<GroupMember>();
     }
 }

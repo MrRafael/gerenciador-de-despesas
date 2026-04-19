@@ -118,7 +118,7 @@ namespace MyFinBackend.Services
             if (totalConfigs <= 1)
                 return ServiceResult.Fail(ServiceError.Conflict);
 
-            db.GroupSplitConfigs.Remove(config);
+            config.IsDeleted = true;
             await db.SaveChangesAsync();
             return ServiceResult.Ok();
         }

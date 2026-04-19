@@ -162,6 +162,12 @@ public partial class FinanceContext : DbContext
                 .HasColumnType("character varying")
                 .HasColumnName("user_id");
 
+            entity.Property(e => e.IsDeleted)
+                .HasColumnName("is_deleted")
+                .HasDefaultValue(false);
+
+            entity.HasQueryFilter(e => !e.IsDeleted);
+
             entity.HasOne(d => d.User)
                 .WithMany(x => x.OwnedGroups)
                 .HasForeignKey(d => d.UserId)
@@ -225,6 +231,9 @@ public partial class FinanceContext : DbContext
             entity.Property(e => e.GroupId).HasColumnName("group_id");
             entity.Property(e => e.SplitType).HasColumnName("split_type");
             entity.Property(e => e.IsDefault).HasColumnName("is_default").HasDefaultValue(false);
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
+
+            entity.HasQueryFilter(e => !e.IsDeleted);
 
             entity.HasOne(e => e.Group)
                 .WithMany()
