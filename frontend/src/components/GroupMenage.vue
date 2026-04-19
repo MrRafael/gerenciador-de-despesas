@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import type { MemberGroup } from '@/types';
 import GroupMember from '@/components/GroupMember.vue';
-import { NFormItem, useDialog, useMessage, NButton, NSelect } from 'naive-ui'
-import { ref, computed } from 'vue';
+import { NFormItem, useDialog, useMessage, NButton, NSelect, NCheckbox } from 'naive-ui'
+import { ref, computed, onMounted } from 'vue';
 import InviteList from './InviteList.vue'
 import NewInvite from './NewInvite.vue'
 import { deleteGroup, deleteMember, getMembers } from '@/api/groups';
 import { useUserStore } from '@/stores/user';
+import { useSelectedGroupStore } from '@/stores/selectedGroup';
 
 
 const message = useMessage();
 const dialog = useDialog();
 const sUser = useUserStore();
+const sSelectedGroup = useSelectedGroupStore();
 const props = defineProps<{
     myGroups: Array<MemberGroup>,
 }>();
@@ -25,7 +27,11 @@ const loadSelectedGroupMembers = async () => {
     }
 }
 
-const currentGroup = ref<number | null>();
+const currentGroup = ref<number | null>(sSelectedGroup.groupId ?? null);
+
+onMounted(() => {
+    if (currentGroup.value) loadSelectedGroupMembers();
+});
 
 const myGroupsOptions = computed(() => {
     return props.myGroups.map(group => ({ value: group.id, label: group.name }))
@@ -38,6 +44,7 @@ const selectedGroup = computed(() => {
 });
 
 function canIDeleteThisGroup(): boolean {
+    if (!selectedGroup.value) return false;
     return sUser.user.id === selectedGroup.value.ownerId || sUser.user.id === selectedGroup.value.userId;
 }
 
@@ -88,11 +95,17 @@ async function handleDeleteMember(userId: string) {
     <invite-list @invites-change="$emit('invitesChange')" />
     <n-form-item v-if="myGroups.length > 0" label="Selecione um grupo" path="remuneration">
         <n-select v-model:value="currentGroup" :options="myGroupsOptions"
-            @update:value="() => { loadSelectedGroupMembers() }" />
+            @update:value="() => loadSelectedGroupMembers()" />
     </n-form-item>
     <slot>
     </slot>
     <div v-if="currentGroup" class="display-flex direction-column members">
+        <n-checkbox
+            :checked="sSelectedGroup.groupId === currentGroup"
+            @update:checked="(v: boolean) => sSelectedGroup.setGroup(v ? currentGroup : null, v ? props.myGroups.find(g => g.id === currentGroup)?.name ?? null : null)"
+        >
+            Visualização padrão na tela inicial
+        </n-checkbox>
         <h3>Membros do grupo</h3>
         <group-member v-for="groupMember in selectedGroupMembers" v-bind:key="groupMember.userId"
             :userName="groupMember.memberName" :user-email="groupMember.memberEmail" :user-id="groupMember.userId"

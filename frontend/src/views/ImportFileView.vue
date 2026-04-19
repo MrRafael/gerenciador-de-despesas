@@ -94,6 +94,7 @@ function createColumns(): DataTableColumns<Expense> {
                 return h(NSelect, {
                     value: row.categoryId,
                     options: options.value,
+                    style: { width: '130px' },
                     onUpdateValue(v: number) {
                         data.value[index].categoryId = v
                     }
@@ -108,7 +109,7 @@ function createColumns(): DataTableColumns<Expense> {
                 return h(NSelect, {
                     value: row.groupId ?? null,
                     options: groupOptions(),
-                    style: { minWidth: '150px' },
+                    style: { width: '130px' },
                     onUpdateValue(v: number | null) {
                         data.value[index].groupId = v ?? undefined;
                     }
