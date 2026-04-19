@@ -13,5 +13,6 @@
 
         public string? OwnerName { get; set; }
         public string? OwnerEmail { get; set; }
+        public decimal? Salary { get; set; }
     }
 }

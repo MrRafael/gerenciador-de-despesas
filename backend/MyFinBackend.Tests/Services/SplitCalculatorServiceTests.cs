@@ -85,8 +85,8 @@ namespace MyFinBackend.Tests.Services
 
             Assert.Equal(50m, owner.Balance);
             Assert.Equal(-50m, member.Balance);
-            Assert.Equal(SplitDirection.Receiver, owner.Direction);
-            Assert.Equal(SplitDirection.Payer, member.Direction);
+            Assert.Equal("receiver", owner.Direction);
+            Assert.Equal("payer", member.Direction);
         }
 
         [Fact]
@@ -225,6 +225,35 @@ namespace MyFinBackend.Tests.Services
             Assert.True(result.IsSuccess);
             var member = result.Data!.Single(m => m.UserId == "member");
             Assert.Equal(-50m, member.Balance);
+        }
+
+        [Fact]
+        public async Task Calculate_ReturnsFrozenResult_WhenMonthIsClosed()
+        {
+            var (db, group) = await SetupGroupAsync("owner", "member");
+            var config = new GroupSplitConfig { GroupId = group.Id, SplitType = SplitType.Equal, IsDefault = true };
+            db.GroupSplitConfigs.Add(config);
+            db.Expenses.Add(MakeExpense("owner", group.Id, 100m, month: 1, year: 2025));
+            await db.SaveChangesAsync();
+
+            var closeService = new MonthCloseService(db, new SplitCalculatorService(db));
+            await closeService.ConfirmAsync(group.Id, "owner", 1, 2025);
+            await closeService.ConfirmAsync(group.Id, "member", 1, 2025);
+
+            config.SplitType = SplitType.Manual;
+            db.GroupSplitConfigShares.AddRange(
+                new GroupSplitConfigShare { GroupSplitConfigId = config.Id, UserId = "owner", Percentage = 90 },
+                new GroupSplitConfigShare { GroupSplitConfigId = config.Id, UserId = "member", Percentage = 10 }
+            );
+            await db.SaveChangesAsync();
+
+            var result = await new SplitCalculatorService(db).CalculateAsync(group.Id, 1, 2025, "owner");
+
+            Assert.True(result.IsSuccess);
+            var owner = result.Data!.Single(m => m.UserId == "owner");
+            var member = result.Data!.Single(m => m.UserId == "member");
+            Assert.Equal(50m, owner.AmountOwed);
+            Assert.Equal(50m, member.AmountOwed);
         }
 
         [Fact]

@@ -202,11 +202,17 @@ public partial class FinanceContext : DbContext
             entity.Property(e => e.UserId).HasColumnName("user_id").HasColumnType("character varying");
             entity.Property(e => e.Salary).HasColumnName("salary").HasColumnType("numeric").IsRequired(false);
 
-            entity.HasOne(e => e.GroupMember)
-                .WithOne()
-                .HasForeignKey<GroupMemberConfig>(e => new { e.GroupId, e.UserId })
+            entity.HasOne(e => e.Group)
+                .WithMany()
+                .HasForeignKey(e => e.GroupId)
                 .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("fk_group_member_config");
+                .HasConstraintName("fk_group_member_config_group");
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_group_member_config_user");
         });
 
         modelBuilder.Entity<GroupSplitConfig>(entity =>

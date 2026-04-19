@@ -57,6 +57,7 @@ src/
 - `useUserStore` - dados do usuário logado
 - `useMonthStore` - mês selecionado (1–12)
 - `useYearStore` - ano selecionado
+- `useSelectedGroupStore` - grupo padrão selecionado no navbar (usado pela HomeView para exibir despesas e resumo de divisão do grupo)
 
 **Variáveis de ambiente (`.env`):**
 
@@ -95,10 +96,15 @@ Services/      # Lógica de negócio (IExpenseService, IGroupService, IExpenseCa
 - `User` - usuário (Id string, Name, Email, Photo)
 - `Expense` - gasto (Description, Value, Date, CategoryId, UserId, GroupId?)
 - `ExpenseCategory` - categoria (Name, UserId)
-- `ExpenseSplitConfig` - tipo de divisão por despesa (ExpenseId, SplitType)
+- `ExpenseSplitConfig` - qual `GroupSplitConfig` se aplica a uma despesa específica (ExpenseId, GroupSplitConfigId)
 - `Group` - grupo de divisão (Name, UserId dono)
 - `GroupMember` - membro de grupo (GroupId + UserId, IsActive)
-- `GroupMemberConfig` - config do membro no grupo (GroupId, UserId, Salary?)
+- `GroupMemberConfig` - config do membro no grupo (GroupId, UserId, Salary?) — FK em Group + User (não em GroupMember, para suportar o dono)
+- `GroupSplitConfig` - configuração de divisão do grupo (GroupId, SplitType: Equal/Proportional/Manual, IsDefault)
+- `GroupSplitConfigShare` - percentual manual por membro (GroupSplitConfigId, UserId, Percentage)
+- `GroupMonthClose` - registro de fechamento de mês (GroupId, Month, Year, ClosedAt?)
+- `GroupMonthCloseConfirmation` - confirmação individual de membro (GroupMonthCloseId, UserId, ConfirmedAt)
+- `ExpenseSplitShare` - snapshot congelado da divisão ao fechar o mês (ExpenseId, UserId, Percentage, Amount)
 
 **Endpoints:**
 
@@ -126,6 +132,16 @@ Services/      # Lógica de negócio (IExpenseService, IGroupService, IExpenseCa
 | Groups | DELETE | `/api/groups/{groupId}` |
 | Groups | DELETE | `/api/groups/{groupId}/members/{userId}` |
 | Groups | DELETE | `/api/groups/{groupId}/invitations/{userId}` |
+| Groups | PUT | `/api/groups/{groupId}/members/{userId}/salary` — define salário do membro |
+| GroupSplitConfig | GET | `/api/groups/{groupId}/split-configs` |
+| GroupSplitConfig | POST | `/api/groups/{groupId}/split-configs` |
+| GroupSplitConfig | PUT | `/api/groups/{groupId}/split-configs/{configId}` |
+| GroupSplitConfig | DELETE | `/api/groups/{groupId}/split-configs/{configId}` |
+| GroupSplitSummary | GET | `/api/groups/{groupId}/split-summary?month=&year=` — calcula (ou retorna congelado) a divisão do mês |
+| GroupSplitSummary | GET | `/api/groups/{groupId}/month-close/pending` — meses anteriores ainda abertos |
+| GroupSplitSummary | GET | `/api/groups/{groupId}/month-close/{month}/{year}` — status de fechamento do mês |
+| GroupSplitSummary | POST | `/api/groups/{groupId}/month-close/{month}/{year}/confirm` — registra confirmação do membro |
+| GroupSplitSummary | DELETE | `/api/groups/{groupId}/month-close/{month}/{year}/confirm` — remove confirmação |
 
 **Autenticação:** Todo endpoint usa `[ClerkAuthorize]`. O atributo valida o Bearer token e extrai o userId do claim `sub`.
 
@@ -140,9 +156,12 @@ Services/      # Lógica de negócio (IExpenseService, IGroupService, IExpenseCa
 **Camada de serviços (`backend/Services/`):**
 
 - `IUserService` / `UserService` — CRUD de usuários
-- `IExpenseService` / `ExpenseService` — CRUD de despesas com verificações de autorização
-- `IGroupService` / `GroupService` — gestão de grupos, convites e membros
+- `IExpenseService` / `ExpenseService` — CRUD de despesas com verificações de autorização e bloqueio de mês fechado
+- `IGroupService` / `GroupService` — gestão de grupos, convites, membros e salários
 - `IExpenseCategoryService` / `ExpenseCategoryService` — CRUD de categorias
+- `IGroupSplitConfigService` / `GroupSplitConfigService` — CRUD de configurações de divisão do grupo
+- `ISplitCalculatorService` / `SplitCalculatorService` — calcula divisão ao vivo; se mês fechado, lê `ExpenseSplitShare` (resultado congelado)
+- `IMonthCloseService` / `MonthCloseService` — gerencia confirmações de fechamento; ao fechar salva snapshot em `ExpenseSplitShare`
 
 Os serviços retornam `ServiceResult<T>` ou `ServiceResult` (sem dados). O enum `ServiceError` possui: `None`, `NotFound`, `Unauthorized`, `Conflict`.
 
@@ -151,19 +170,22 @@ Os serviços retornam `ServiceResult<T>` ou `ServiceResult` (sem dados). O enum 
 ## Regras de negócio principais
 
 - Cada usuário tem suas próprias categorias e gastos
-- Grupos permitem que dois usuários compartilhem gastos do mês
-- A divisão dos gastos é configurável por despesa via `ExpenseSplitConfig` (Equal, Proportional, Manual)
-- Para divisão proporcional, o salário de cada membro fica em `GroupMemberConfig`
+- Grupos permitem que múltiplos usuários compartilhem gastos do mês
 - Convites para grupos são feitos por email; o convidado precisa aceitar
+- Cada grupo pode ter múltiplas configurações de divisão (`GroupSplitConfig`): Equal, Proportional ou Manual
+- Uma config é marcada como padrão (`IsDefault`); cada despesa pode sobrescrever com uma config específica via `ExpenseSplitConfig`
+- Para divisão proporcional, o salário de cada membro fica em `GroupMemberConfig` (cada membro edita o próprio salário)
+- O resumo de divisão (`split-summary`) mostra: total gasto, quanto cada membro pagou, deveria pagar, saldo e direção (recebe/paga)
+- **Fechamento de mês:** meses anteriores ao atual podem ser fechados. Todos os membros precisam confirmar. Ao fechar: salva snapshot em `ExpenseSplitShare` e bloqueia modificações
+- **Mês fechado:** não é possível criar, deletar, desvincular ou alterar tipo de divisão de despesas de mês fechado. Retorna `409 Conflict`
+- **Resultado congelado:** após fechar, `split-summary` retorna os valores do snapshot (`ExpenseSplitShare`), ignorando mudanças posteriores de salário ou config
 
 ---
 
 ## O que está em andamento / incompleto
 
 - Remoção do Firebase (ainda há código em `frontend/src/firebase/`)
-- Lógica de cálculo de divisão ainda não implementada no backend
-- Tipos Firebase ainda presentes em `frontend/src/types/index.ts` (MonthGroup, PersonalInformation, CollaboratorResult)
-- Lógica de cálculo de divisão ainda não implementada no backend (quanto cada membro deve pagar)
+- Tipos Firebase ainda presentes em `frontend/src/types/index.ts` (MonthGroup, PersonalInformation, CollaboratorResult) — não utilizar, serão removidos
 
 ---
 

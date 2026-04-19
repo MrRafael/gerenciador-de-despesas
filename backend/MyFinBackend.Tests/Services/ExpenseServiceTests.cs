@@ -251,6 +251,46 @@ namespace MyFinBackend.Tests.Services
         }
 
         [Fact]
+        public async Task Delete_ReturnsConflict_WhenGroupMonthIsClosed()
+        {
+            using var db = DbContextFactory.Create();
+            var group = new Group { Name = "Grupo", UserId = "user-a" };
+            db.Groups.Add(group);
+            await db.SaveChangesAsync();
+
+            var expense = MakeExpense("user-a", new DateOnly(2025, 1, 15));
+            expense.GroupId = group.Id;
+            db.Expenses.Add(expense);
+            var monthClose = new GroupMonthClose { GroupId = group.Id, Month = 1, Year = 2025, ClosedAt = DateTime.UtcNow };
+            db.GroupMonthCloses.Add(monthClose);
+            await db.SaveChangesAsync();
+
+            var result = await MakeService(db).DeleteAsync(expense.Id, "user-a");
+
+            Assert.Equal(ServiceError.Conflict, result.Error);
+        }
+
+        [Fact]
+        public async Task UpdateGroup_ReturnsConflict_WhenCurrentGroupMonthIsClosed()
+        {
+            using var db = DbContextFactory.Create();
+            var group = new Group { Name = "Grupo", UserId = "user-a" };
+            db.Groups.Add(group);
+            await db.SaveChangesAsync();
+
+            var expense = MakeExpense("user-a", new DateOnly(2025, 1, 15));
+            expense.GroupId = group.Id;
+            db.Expenses.Add(expense);
+            var monthClose = new GroupMonthClose { GroupId = group.Id, Month = 1, Year = 2025, ClosedAt = DateTime.UtcNow };
+            db.GroupMonthCloses.Add(monthClose);
+            await db.SaveChangesAsync();
+
+            var result = await MakeService(db).UpdateGroupAsync(expense.Id, new UpdateExpenseGroupDto { GroupId = null }, "user-a");
+
+            Assert.Equal(ServiceError.Conflict, result.Error);
+        }
+
+        [Fact]
         public async Task UpdateGroup_UpdatesSplitConfig_WhenGroupAlreadyAssigned()
         {
             using var db = DbContextFactory.Create();

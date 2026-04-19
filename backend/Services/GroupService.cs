@@ -77,6 +77,11 @@ namespace MyFinBackend.Services
             if (group == null)
                 return ServiceResult<List<GroupMemberDto>>.Fail(ServiceError.NotFound);
 
+            var allUserIds = new[] { group.UserId }.Concat(group.Members.Select(m => m.UserId)).ToList();
+            var salaries = await db.GroupMemberConfigs
+                .Where(c => c.GroupId == groupId && allUserIds.Contains(c.UserId))
+                .ToDictionaryAsync(c => c.UserId, c => c.Salary);
+
             var members = new List<GroupMemberDto>
             {
                 new() {
@@ -86,7 +91,8 @@ namespace MyFinBackend.Services
                     UserId = group.UserId,
                     OwnerId = group.UserId,
                     MemberEmail = group.User.Email,
-                    MemberName = group.User.Name
+                    MemberName = group.User.Name,
+                    Salary = salaries.TryGetValue(group.UserId, out var os) ? os : null
                 }
             };
 
@@ -98,10 +104,37 @@ namespace MyFinBackend.Services
                 UserId = gm.UserId,
                 OwnerId = group.UserId,
                 MemberEmail = gm.User.Email,
-                MemberName = gm.User.Name
+                MemberName = gm.User.Name,
+                Salary = salaries.TryGetValue(gm.UserId, out var ms) ? ms : null
             }));
 
             return ServiceResult<List<GroupMemberDto>>.Ok(members);
+        }
+
+        public async Task<ServiceResult> SetMemberSalaryAsync(int groupId, string userId, decimal? salary, string contextUserId)
+        {
+            if (userId != contextUserId)
+                return ServiceResult.Fail(ServiceError.Unauthorized);
+
+            var isMember = await db.Groups.AnyAsync(g => g.Id == groupId && g.UserId == userId)
+                || await db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId && m.IsActive);
+
+            if (!isMember)
+                return ServiceResult.Fail(ServiceError.NotFound);
+
+            var config = await db.GroupMemberConfigs.FindAsync(groupId, userId);
+            if (config == null)
+            {
+                db.GroupMemberConfigs.Add(new Model.GroupMemberConfig { GroupId = groupId, UserId = userId, Salary = salary });
+            }
+            else
+            {
+                config.Salary = salary;
+                db.Entry(config).State = EntityState.Modified;
+            }
+
+            await db.SaveChangesAsync();
+            return ServiceResult.Ok();
         }
 
         public async Task<ServiceResult<GroupMemberDto>> CreateGroupAsync(Group group, string contextUserId)

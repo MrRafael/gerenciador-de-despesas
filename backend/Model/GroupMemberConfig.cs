@@ -6,6 +6,7 @@ namespace MyFinBackend.Model
         public string UserId { get; set; } = null!;
         public decimal? Salary { get; set; }
 
-        public GroupMember? GroupMember { get; set; }
+        public Group? Group { get; set; }
+        public User? User { get; set; }
     }
 }

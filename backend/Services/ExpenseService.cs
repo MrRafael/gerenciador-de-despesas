@@ -98,6 +98,9 @@ namespace MyFinBackend.Services
             if (expense == null || expense.UserId != contextUserId)
                 return ServiceResult<ExpenseReturnDto>.Fail(ServiceError.NotFound);
 
+            if (expense.GroupId.HasValue && await monthClose.IsClosedMonthAsync(expense.GroupId.Value, expense.Date.Month, expense.Date.Year))
+                return ServiceResult<ExpenseReturnDto>.Fail(ServiceError.Conflict);
+
             if (dto.GroupId.HasValue && await monthClose.IsClosedMonthAsync(dto.GroupId.Value, expense.Date.Month, expense.Date.Year))
                 return ServiceResult<ExpenseReturnDto>.Fail(ServiceError.Conflict);
 
@@ -127,6 +130,9 @@ namespace MyFinBackend.Services
             var expense = await db.Expenses.FindAsync(expenseId);
             if (expense == null || expense.UserId != contextUserId)
                 return ServiceResult.Fail(ServiceError.Unauthorized);
+
+            if (expense.GroupId.HasValue && await monthClose.IsClosedMonthAsync(expense.GroupId.Value, expense.Date.Month, expense.Date.Year))
+                return ServiceResult.Fail(ServiceError.Conflict);
 
             db.Expenses.Remove(expense);
             await db.SaveChangesAsync();

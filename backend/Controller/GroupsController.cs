@@ -128,6 +128,18 @@ namespace MyFinBackend.Controller
             };
         }
 
+        [HttpPut("{groupId}/members/{userId}/salary")]
+        public async Task<ActionResult> SetMemberSalary(int groupId, string userId, [FromBody] SetMemberSalaryDto dto)
+        {
+            var result = await groupService.SetMemberSalaryAsync(groupId, userId, dto.Salary, GetUserId());
+            return result.Error switch
+            {
+                ServiceError.Unauthorized => Forbid(),
+                ServiceError.NotFound => NotFound(),
+                _ => NoContent()
+            };
+        }
+
         private string GetUserId() => User.FindFirstValue("sub")!;
     }
 }

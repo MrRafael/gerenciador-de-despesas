@@ -44,8 +44,12 @@ namespace MyFinBackend.Controller
         public async Task<ActionResult<ExpenseReturnDto>> PostExpense(CreateExpenseDto dto)
         {
             var result = await expenseService.CreateWithSplitAsync(dto, GetUserId());
-            if (!result.IsSuccess) return BadRequest();
-            return CreatedAtAction(nameof(GetExpense), new { id = result.Data!.Id }, result.Data);
+            return result.Error switch
+            {
+                ServiceError.Conflict => Conflict(),
+                _ when !result.IsSuccess => BadRequest(),
+                _ => CreatedAtAction(nameof(GetExpense), new { id = result.Data!.Id }, result.Data)
+            };
         }
 
         [HttpPost("bulk")]
@@ -63,6 +67,7 @@ namespace MyFinBackend.Controller
             return result.Error switch
             {
                 ServiceError.NotFound => NotFound(),
+                ServiceError.Conflict => Conflict(),
                 _ => Ok(result.Data)
             };
         }
@@ -71,7 +76,12 @@ namespace MyFinBackend.Controller
         public async Task<ActionResult> DeleteExpense(int expenseId)
         {
             var result = await expenseService.DeleteAsync(expenseId, GetUserId());
-            return result.IsSuccess ? NoContent() : Forbid();
+            return result.Error switch
+            {
+                ServiceError.Unauthorized => Forbid(),
+                ServiceError.Conflict => Conflict(),
+                _ => NoContent()
+            };
         }
 
         private string GetUserId() => User.FindFirstValue("sub")!;
