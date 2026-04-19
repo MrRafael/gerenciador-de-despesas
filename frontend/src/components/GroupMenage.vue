@@ -4,7 +4,7 @@ import GroupMember from '@/components/GroupMember.vue';
 import GroupSplitConfigTab from '@/components/GroupSplitConfigTab.vue';
 import GroupSplitSummarySection from '@/components/GroupSplitSummarySection.vue';
 import { NFormItem, useDialog, useMessage, NButton, NSelect, NCheckbox, NTabs, NTabPane, NInputNumber } from 'naive-ui';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import InviteList from './InviteList.vue';
 import NewInvite from './NewInvite.vue';
 import { deleteGroup, deleteMember, getMembers, setMemberSalary } from '@/api/groups';
@@ -63,6 +63,16 @@ const isOwner = computed(() => sUser.user?.id === selectedGroup.value?.ownerId);
 const groupMembersForSummary = computed(() =>
     selectedGroupMembers.value.map(m => ({ userId: m.userId!, name: m.memberName ?? m.userId! }))
 );
+
+watch(() => props.myGroups, (groups) => {
+    if (groups.length > 0 && currentGroup.value !== null) {
+        const stillExists = groups.some(g => g.id === currentGroup.value);
+        if (!stillExists) {
+            currentGroup.value = null;
+            sSelectedGroup.setGroup(null, null);
+        }
+    }
+});
 
 async function onGroupChange() {
     await Promise.all([loadSelectedGroupMembers(), loadSplitConfigsFlag()]);
