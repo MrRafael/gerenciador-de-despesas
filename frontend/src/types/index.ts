@@ -22,6 +22,7 @@ export interface MemberGroup {
     memberName?: string,
     ownerEmail?: string,
     ownerName?: string,
+    salary?: number | null,
 }
 
 export interface Expense {
@@ -48,7 +49,7 @@ export interface ExpenseSaveDto {
     categoryId?: number,
     userId?: string,
     groupId?: number,
-    splitType?: SplitType,
+    groupSplitConfigId?: number,
 }
 
 export interface ExpenseCategory {
@@ -70,7 +71,50 @@ export interface GroupExpense {
     date: string;
     categoryId: number;
     userId: string;
-    splitType?: SplitType;
+    groupSplitConfigId?: number;
+}
+
+export interface GroupSplitConfigShare {
+    userId: string;
+    percentage: number;
+}
+
+export interface GroupSplitConfig {
+    id: number;
+    groupId: number;
+    splitType: SplitType;
+    isDefault: boolean;
+    shares: GroupSplitConfigShare[];
+}
+
+export type SplitDirection = 'receiver' | 'payer';
+
+export interface SplitMemberResult {
+    userId: string;
+    name: string;
+    amountPaid: number;
+    amountOwed: number;
+    balance: number;
+    percentage: number;
+    direction: SplitDirection;
+}
+
+export interface MonthCloseConfirmation {
+    userId: string;
+    name: string;
+    confirmed: boolean;
+}
+
+export interface MonthCloseStatus {
+    month: number;
+    year: number;
+    isClosed: boolean;
+    confirmations: MonthCloseConfirmation[];
+}
+
+export interface PendingMonth {
+    month: number;
+    year: number;
 }
 
 export interface MonthCollabUser {

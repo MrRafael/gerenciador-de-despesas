@@ -1,4 +1,4 @@
-import type { Expense, ExpenseSaveDto, SplitType } from "@/types";
+import type { Expense, ExpenseSaveDto } from "@/types";
 import axios from "axios";
 
 export const getExpensesByUserIdAndRange = async (userId: string, startDate: string, endDate: string): Promise<Expense[] | null> => {
@@ -20,8 +20,8 @@ export const createExpenses = async (expenses: Expense[]): Promise<Expense[]> =>
     return data;
 }
 
-export const updateExpenseGroup = async (expenseId: number, groupId: number | null, splitType?: SplitType): Promise<Expense> => {
-    const { data } = await axios.patch(`api/expenses/${expenseId}/group`, { groupId, splitType });
+export const updateExpenseGroup = async (expenseId: number, groupId: number | null, groupSplitConfigId?: number): Promise<Expense> => {
+    const { data } = await axios.patch(`api/expenses/${expenseId}/group`, { groupId, groupSplitConfigId });
     return data;
 }
 

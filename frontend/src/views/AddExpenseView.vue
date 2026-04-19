@@ -3,7 +3,7 @@ import { useMonthStore } from '@/stores/currentMonth';
 import { useYearStore } from '@/stores/currentYear';
 import { useUserStore } from '@/stores/user';
 import NewCategory from '@/components/NewCategory.vue';
-import { SplitType, type ExpenseCategory, type ExpenseSaveDto, type MemberGroup, type UserInfo } from '@/types';
+import type { ExpenseCategory, ExpenseSaveDto, GroupSplitConfig, MemberGroup, UserInfo } from '@/types';
 import { NButton, NDatePicker, NForm, NFormItem, NModal, NInput, NInputNumber, NTooltip, useMessage, NSelect, NIcon, type FormInst } from 'naive-ui';
 import {
     AddCircleOutlineTwotone as AddIcon,
@@ -13,6 +13,7 @@ import { formatCurrency, parseCurrency } from '../util';
 import { getCategoriesByUserId } from '@/api/category';
 import { createExpense } from '@/api/expense';
 import { getMyGroups } from '@/api/groups';
+import { getSplitConfigs } from '@/api/splitConfig';
 
 const message = useMessage();
 
@@ -26,6 +27,7 @@ const expense = ref<ExpenseSaveDto>(startExpense());
 const user = ref<UserInfo>();
 const categories = ref<ExpenseCategory[]>([]);
 const groups = ref<MemberGroup[]>([]);
+const groupSplitConfigs = ref<GroupSplitConfig[]>([]);
 const isSaving = ref(false);
 const showModal = ref(false);
 
@@ -36,11 +38,20 @@ const groupOptions = computed(() => [
     ...groups.value.map(g => ({ label: g.name, value: g.id }))
 ]);
 
-const splitTypeOptions = [
-    { label: 'Divisão igual', value: SplitType.Equal },
-    { label: 'Proporcional ao salário', value: SplitType.Proportional },
-    { label: 'Manual', value: SplitType.Manual },
-];
+const splitConfigOptions = computed(() =>
+    groupSplitConfigs.value.map(c => ({
+        label: splitTypeLabel(c),
+        value: c.id,
+    }))
+);
+
+const showSplitSelector = computed(() => expense.value.groupId && groupSplitConfigs.value.length >= 1);
+
+function splitTypeLabel(config: GroupSplitConfig): string {
+    const labels: Record<number, string> = { 0: 'Divisão igual', 1: 'Proporcional ao salário', 2: 'Manual' };
+    const base = labels[config.splitType] ?? 'Desconhecido';
+    return config.isDefault ? `${base} (padrão)` : base;
+}
 
 onBeforeMount(async () => {
     loadData();
@@ -72,7 +83,7 @@ function startExpense(): ExpenseSaveDto {
         value: null,
         description: '',
         groupId: undefined,
-        splitType: undefined,
+        groupSplitConfigId: undefined,
     }
 }
 
@@ -107,12 +118,23 @@ sUser.$onAction(({ after }) => {
     })
 });
 
-const onGroupChange = (groupId: number | null) => {
-    if (!groupId) {
-        expense.value.splitType = undefined;
-    } else if (expense.value.splitType === undefined) {
-        expense.value.splitType = SplitType.Equal;
-    }
+const onGroupChange = async (groupId: number | null) => {
+    expense.value.groupSplitConfigId = undefined;
+    groupSplitConfigs.value = [];
+
+    if (!groupId) return;
+
+    try {
+        const configs = await getSplitConfigs(groupId);
+        groupSplitConfigs.value = configs;
+
+        if (configs.length === 1) {
+            expense.value.groupSplitConfigId = configs[0].id;
+        } else if (configs.length > 1) {
+            const defaultConfig = configs.find(c => c.isDefault) ?? configs[0];
+            expense.value.groupSplitConfigId = defaultConfig.id;
+        }
+    } catch { }
 }
 
 const onNewCategoryClosed = () => {
@@ -132,13 +154,15 @@ const save = async () => {
                     categoryId: expense.value.categoryId,
                     userId: user.value?.id,
                     groupId: expense.value.groupId || undefined,
-                    splitType: expense.value.groupId ? expense.value.splitType : undefined,
+                    groupSplitConfigId: expense.value.groupId ? expense.value.groupSplitConfigId : undefined,
                 })
 
                 message.success('Despesa adicionada com sucesso');
                 expense.value = startExpense();
-            } catch {
-                message.error('Erro ao adicionar despesa');
+                groupSplitConfigs.value = [];
+            } catch (err: unknown) {
+                const status = (err as { response?: { status?: number } })?.response?.status;
+                message.error(status === 409 ? 'Este mês já foi fechado e não pode receber novas despesas' : 'Erro ao adicionar despesa');
             }
         }
 
@@ -179,8 +203,8 @@ const save = async () => {
                 @update:value="onGroupChange"
             />
         </n-form-item>
-        <n-form-item v-if="expense.groupId" label="Tipo de divisão" path="splitType">
-            <n-select v-model:value="expense.splitType" :options="splitTypeOptions" />
+        <n-form-item v-if="showSplitSelector" label="Como dividir?" path="groupSplitConfigId">
+            <n-select v-model:value="expense.groupSplitConfigId" :options="splitConfigOptions" />
         </n-form-item>
     </n-form>
 

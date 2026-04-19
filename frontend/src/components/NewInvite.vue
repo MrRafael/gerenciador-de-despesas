@@ -13,7 +13,7 @@ const emit = defineEmits(['inveted']);
 
 const emailToInvite = ref('');
 
-async function inviteMember() {
+async function sendInvite() {
     try {
         await inviteMember(props.selectedGroup.id!, emailToInvite.value)
         emit('inveted', emailToInvite.value);
@@ -22,7 +22,6 @@ async function inviteMember() {
     } catch {
         message.error("Verifique se esse email esta cadastrado");
     }
-    
 }
 
 </script>
@@ -31,7 +30,7 @@ async function inviteMember() {
     <div>
         <n-input-group>
             <n-input placeholder="email do convidado" v-model:value="emailToInvite"></n-input>
-            <n-button @click="inviteMember">Convidar</n-button>
+            <n-button @click="sendInvite">Convidar</n-button>
         </n-input-group>
 
     </div>

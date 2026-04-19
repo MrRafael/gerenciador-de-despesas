@@ -47,3 +47,7 @@ export const deleteGroup = async (groupId: number): Promise<void> => {
 export const deleteMember = async (groupId: number, userId: string): Promise<void> => {
     await axios.delete(`api/groups/${groupId}/members/${userId}`);
 }
+
+export const setMemberSalary = async (groupId: number, userId: string, salary: number | null): Promise<void> => {
+    await axios.put(`api/groups/${groupId}/members/${userId}/salary`, { salary });
+}
