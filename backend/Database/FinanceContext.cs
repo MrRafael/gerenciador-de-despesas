@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using MyFinBackend.Model;
@@ -19,6 +19,10 @@ public partial class FinanceContext : DbContext
     public virtual DbSet<Group> Groups { get; set; }
     public virtual DbSet<GroupMember> GroupMembers { get; set; }
     public virtual DbSet<GroupMemberConfig> GroupMemberConfigs { get; set; }
+    public virtual DbSet<GroupSplitConfig> GroupSplitConfigs { get; set; }
+    public virtual DbSet<GroupSplitConfigShare> GroupSplitConfigShares { get; set; }
+    public virtual DbSet<GroupMonthClose> GroupMonthCloses { get; set; }
+    public virtual DbSet<GroupMonthCloseConfirmation> GroupMonthCloseConfirmations { get; set; }
     public virtual DbSet<ExpenseSplitConfig> ExpenseSplitConfigs { get; set; }
     public virtual DbSet<ExpenseSplitShare> ExpenseSplitShares { get; set; }
 
@@ -167,7 +171,6 @@ public partial class FinanceContext : DbContext
 
         modelBuilder.Entity<GroupMember>(entity =>
         {
-            // Chave Composta para a tabela de junção
             entity.HasKey(e => new { e.GroupId, e.UserId }).HasName("group_member_pk");
 
             entity.ToTable("GroupMember");
@@ -176,14 +179,12 @@ public partial class FinanceContext : DbContext
             entity.Property(e => e.UserId).HasColumnName("user_id").HasColumnType("character varying");
             entity.Property(e => e.IsActive).HasColumnName("is_active").HasDefaultValue(true);
 
-            // Relacionamento com Group
             entity.HasOne(d => d.Group)
                 .WithMany(x => x.Members)
                 .HasForeignKey(d => d.GroupId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("fk_member_group");
 
-            // Relacionamento com User
             entity.HasOne(d => d.User)
                 .WithMany(x => x.GroupMemberships)
                 .HasForeignKey(d => d.UserId)
@@ -208,6 +209,89 @@ public partial class FinanceContext : DbContext
                 .HasConstraintName("fk_group_member_config");
         });
 
+        modelBuilder.Entity<GroupSplitConfig>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("group_split_config_pk");
+
+            entity.ToTable("GroupSplitConfig");
+
+            entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
+            entity.Property(e => e.GroupId).HasColumnName("group_id");
+            entity.Property(e => e.SplitType).HasColumnName("split_type");
+            entity.Property(e => e.IsDefault).HasColumnName("is_default").HasDefaultValue(false);
+
+            entity.HasOne(e => e.Group)
+                .WithMany()
+                .HasForeignKey(e => e.GroupId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_group_split_config_group");
+        });
+
+        modelBuilder.Entity<GroupSplitConfigShare>(entity =>
+        {
+            entity.HasKey(e => new { e.GroupSplitConfigId, e.UserId }).HasName("group_split_config_share_pk");
+
+            entity.ToTable("GroupSplitConfigShare");
+
+            entity.Property(e => e.GroupSplitConfigId).HasColumnName("group_split_config_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id").HasColumnType("character varying");
+            entity.Property(e => e.Percentage).HasColumnName("percentage").HasColumnType("numeric");
+
+            entity.HasOne(e => e.GroupSplitConfig)
+                .WithMany(c => c.Shares)
+                .HasForeignKey(e => e.GroupSplitConfigId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_split_config_share_config");
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_split_config_share_user");
+        });
+
+        modelBuilder.Entity<GroupMonthClose>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("group_month_close_pk");
+
+            entity.ToTable("GroupMonthClose");
+
+            entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
+            entity.Property(e => e.GroupId).HasColumnName("group_id");
+            entity.Property(e => e.Month).HasColumnName("month");
+            entity.Property(e => e.Year).HasColumnName("year");
+            entity.Property(e => e.ClosedAt).HasColumnName("closed_at").IsRequired(false);
+
+            entity.HasOne(e => e.Group)
+                .WithMany()
+                .HasForeignKey(e => e.GroupId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_group_month_close_group");
+        });
+
+        modelBuilder.Entity<GroupMonthCloseConfirmation>(entity =>
+        {
+            entity.HasKey(e => new { e.GroupMonthCloseId, e.UserId }).HasName("group_month_close_confirmation_pk");
+
+            entity.ToTable("GroupMonthCloseConfirmation");
+
+            entity.Property(e => e.GroupMonthCloseId).HasColumnName("group_month_close_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id").HasColumnType("character varying");
+            entity.Property(e => e.ConfirmedAt).HasColumnName("confirmed_at");
+
+            entity.HasOne(e => e.GroupMonthClose)
+                .WithMany(c => c.Confirmations)
+                .HasForeignKey(e => e.GroupMonthCloseId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_month_close_confirmation_close");
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_month_close_confirmation_user");
+        });
+
         modelBuilder.Entity<ExpenseSplitConfig>(entity =>
         {
             entity.HasKey(e => e.ExpenseId).HasName("expense_split_config_pk");
@@ -215,13 +299,19 @@ public partial class FinanceContext : DbContext
             entity.ToTable("ExpenseSplitConfig");
 
             entity.Property(e => e.ExpenseId).HasColumnName("expense_id");
-            entity.Property(e => e.SplitType).HasColumnName("split_type");
+            entity.Property(e => e.GroupSplitConfigId).HasColumnName("group_split_config_id");
 
             entity.HasOne(e => e.Expense)
                 .WithOne()
                 .HasForeignKey<ExpenseSplitConfig>(e => e.ExpenseId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("fk_expense_split_config");
+
+            entity.HasOne(e => e.GroupSplitConfig)
+                .WithMany()
+                .HasForeignKey(e => e.GroupSplitConfigId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_expense_split_config_group_split");
         });
 
         modelBuilder.Entity<ExpenseSplitShare>(entity =>
@@ -233,6 +323,7 @@ public partial class FinanceContext : DbContext
             entity.Property(e => e.ExpenseId).HasColumnName("expense_id");
             entity.Property(e => e.UserId).HasColumnName("user_id").HasColumnType("character varying");
             entity.Property(e => e.Percentage).HasColumnName("percentage").HasColumnType("numeric");
+            entity.Property(e => e.Amount).HasColumnName("amount").HasColumnType("numeric");
 
             entity.HasOne(e => e.Expense)
                 .WithMany()

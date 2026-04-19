@@ -1,5 +1,3 @@
-using MyFinBackend.Model;
-
 namespace MyFinBackend.Dto
 {
     public class CreateExpenseDto
@@ -10,6 +8,6 @@ namespace MyFinBackend.Dto
         public string UserId { get; set; }
         public int CategoryId { get; set; }
         public int? GroupId { get; set; }
-        public SplitType? SplitType { get; set; }
+        public int? GroupSplitConfigId { get; set; }
     }
 }

@@ -208,7 +208,7 @@ namespace MyFinBackend.Services
 
             var splitConfigs = await db.ExpenseSplitConfigs
                 .Where(sc => expenseIds.Contains(sc.ExpenseId))
-                .ToDictionaryAsync(sc => sc.ExpenseId, sc => sc.SplitType);
+                .ToDictionaryAsync(sc => sc.ExpenseId, sc => sc.GroupSplitConfigId);
 
             var result = expenses.Select(e => new GroupExpenseDto
             {
@@ -218,7 +218,7 @@ namespace MyFinBackend.Services
                 Date = e.Date,
                 CategoryId = e.CategoryId,
                 UserId = e.UserId,
-                SplitType = splitConfigs.TryGetValue(e.Id, out var st) ? st : null
+                GroupSplitConfigId = splitConfigs.TryGetValue(e.Id, out var scId) ? scId : null
             }).ToList();
 
             return ServiceResult<List<GroupExpenseDto>>.Ok(result);

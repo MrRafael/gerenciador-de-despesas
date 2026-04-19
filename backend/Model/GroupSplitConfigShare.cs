@@ -1,13 +1,12 @@
 namespace MyFinBackend.Model
 {
-    public class ExpenseSplitShare
+    public class GroupSplitConfigShare
     {
-        public int ExpenseId { get; set; }
+        public int GroupSplitConfigId { get; set; }
         public string UserId { get; set; } = null!;
         public decimal Percentage { get; set; }
-        public decimal Amount { get; set; }
 
-        public Expense? Expense { get; set; }
+        public GroupSplitConfig? GroupSplitConfig { get; set; }
         public User? User { get; set; }
     }
 }

@@ -140,7 +140,7 @@ namespace MyFinBackend.Tests.Services
         }
 
         [Fact]
-        public async Task GetGroupExpenses_IncludesSplitType_WhenConfigExists()
+        public async Task GetGroupExpenses_IncludesSplitConfigId_WhenConfigExists()
         {
             using var db = DbContextFactory.Create();
             var owner = MakeUser("owner", "owner@test.com");
@@ -149,11 +149,13 @@ namespace MyFinBackend.Tests.Services
             db.Groups.Add(group);
             await db.SaveChangesAsync();
 
+            var splitConfig = new GroupSplitConfig { GroupId = group.Id, SplitType = SplitType.Proportional, IsDefault = true };
+            db.GroupSplitConfigs.Add(splitConfig);
             var expense = MakeExpense("owner", group.Id, new DateOnly(2026, 1, 15));
             db.Expenses.Add(expense);
             await db.SaveChangesAsync();
 
-            db.ExpenseSplitConfigs.Add(new ExpenseSplitConfig { ExpenseId = expense.Id, SplitType = SplitType.Proportional });
+            db.ExpenseSplitConfigs.Add(new ExpenseSplitConfig { ExpenseId = expense.Id, GroupSplitConfigId = splitConfig.Id });
             await db.SaveChangesAsync();
 
             var service = new GroupService(db);
@@ -162,11 +164,11 @@ namespace MyFinBackend.Tests.Services
                 new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31));
 
             Assert.True(result.IsSuccess);
-            Assert.Equal(SplitType.Proportional, result.Data![0].SplitType);
+            Assert.Equal(splitConfig.Id, result.Data![0].GroupSplitConfigId);
         }
 
         [Fact]
-        public async Task GetGroupExpenses_SplitTypeIsNull_WhenNoConfigExists()
+        public async Task GetGroupExpenses_SplitConfigIdIsNull_WhenNoConfigExists()
         {
             using var db = DbContextFactory.Create();
             var owner = MakeUser("owner", "owner@test.com");
@@ -184,7 +186,7 @@ namespace MyFinBackend.Tests.Services
                 new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31));
 
             Assert.True(result.IsSuccess);
-            Assert.Null(result.Data![0].SplitType);
+            Assert.Null(result.Data![0].GroupSplitConfigId);
         }
     }
 }

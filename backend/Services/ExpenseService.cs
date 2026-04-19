@@ -66,12 +66,12 @@ namespace MyFinBackend.Services
             db.Expenses.Add(expense);
             await db.SaveChangesAsync();
 
-            if (dto.SplitType.HasValue)
+            if (dto.GroupSplitConfigId.HasValue)
             {
                 db.ExpenseSplitConfigs.Add(new ExpenseSplitConfig
                 {
                     ExpenseId = expense.Id,
-                    SplitType = dto.SplitType.Value
+                    GroupSplitConfigId = dto.GroupSplitConfigId.Value
                 });
                 await db.SaveChangesAsync();
             }
@@ -103,12 +103,12 @@ namespace MyFinBackend.Services
                 if (existingSplit != null)
                     db.ExpenseSplitConfigs.Remove(existingSplit);
             }
-            else if (dto.SplitType.HasValue)
+            else if (dto.GroupSplitConfigId.HasValue)
             {
                 if (existingSplit == null)
-                    db.ExpenseSplitConfigs.Add(new ExpenseSplitConfig { ExpenseId = expenseId, SplitType = dto.SplitType.Value });
+                    db.ExpenseSplitConfigs.Add(new ExpenseSplitConfig { ExpenseId = expenseId, GroupSplitConfigId = dto.GroupSplitConfigId.Value });
                 else
-                    existingSplit.SplitType = dto.SplitType.Value;
+                    existingSplit.GroupSplitConfigId = dto.GroupSplitConfigId.Value;
             }
 
             await db.SaveChangesAsync();
