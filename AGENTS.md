@@ -199,6 +199,12 @@ environment:
 
 ---
 
+## Pasta `temp/` — planejamentos locais
+
+A pasta `temp/` na raiz do repositório é ignorada pelo git (ver `.gitignore`) e serve para guardar arquivos de planejamento, rascunhos e documentos temporários de desenvolvimento. Nada dentro dela deve ser commitado. Use-a livremente durante o desenvolvimento para organizar planos de implementação, anotações e estudos.
+
+---
+
 ## Convenções
 
 - **UI:** português brasileiro; código (variáveis, funções, classes) em inglês.
