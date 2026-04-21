@@ -1,65 +1,95 @@
 <script setup lang="ts">
-import { NGrid, NGridItem, NButton, NIcon } from 'naive-ui'
-import { AddRound, HomeFilled, GroupsRound } from '@vicons/material';
-import router from '@/router';
+import { NIcon } from 'naive-ui';
+import {
+  AddRound,
+  HomeFilled,
+  GroupsRound,
+  UploadFilled,
+} from '@vicons/material';
+import { useRouter, useRoute } from 'vue-router';
+import { computed } from 'vue';
 
-function goHome() {
-    router.push('/')
+const router = useRouter();
+const route = useRoute();
+
+const items = [
+  { icon: HomeFilled, label: 'Home', route: '/' },
+  { icon: AddRound, label: 'Adicionar', route: '/addExpense' },
+  { icon: UploadFilled, label: 'Importar', route: '/import' },
+  { icon: GroupsRound, label: 'Grupos', route: '/groups' },
+];
+
+const activeRoute = computed(() => route.path);
+
+function navigate(path: string) {
+  router.push(path);
 }
-
-function goGroups() {
-    router.push('/groups')
-}
-
-function goAddExpense() {
-    router.push('/expense')
-}
-
 </script>
 
 <template>
-    <footer>
-        <n-grid cols="3" class="grid">
-            <n-grid-item class="display-flex align-center">
-                <n-grid-item class="grid-item display-flex justify-center align-center cursor-pointer">
-                    <n-icon :component="HomeFilled" size="30" color="white" @click="goHome" />
-                </n-grid-item>
-            </n-grid-item>
-            <n-grid-item class="grid-item display-flex justify-center align-center">
-                <n-button circle strong size="large" type="primary" @click="goAddExpense">
-                    <template #icon>
-                        <n-icon :component="AddRound" size="25" />
-                    </template>
-                </n-button>
-            </n-grid-item>
-            <n-grid-item class="display-flex align-center justify-end">
-                <n-grid-item class="grid-item display-flex justify-center align-center cursor-pointer">
-                    <n-icon :component="GroupsRound" size="30" color="white" @click="goGroups" />
-                </n-grid-item>
-            </n-grid-item>
-        </n-grid>
-    </footer>
+  <footer class="bottom-nav">
+    <button
+      v-for="item in items"
+      :key="item.route"
+      :class="['nav-item', { active: activeRoute === item.route }]"
+      @click="navigate(item.route)"
+    >
+      <n-icon :component="item.icon" :size="22" />
+      <span class="nav-label">{{ item.label }}</span>
+    </button>
+  </footer>
 </template>
 
 <style scoped>
-footer {
-    width: 100vw;
-    height: 4rem;
-    position: fixed;
-    left: 0;
-    bottom: 0;
-    padding: 0 2rem;
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3.5rem;
+  background: var(--color-background, #fff);
+  border-top: 1px solid var(--color-border, rgba(60, 60, 60, 0.12));
+  display: none; /* oculto por padrão — só aparece no mobile */
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+  padding: 0;
+  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.06);
 }
 
-.grid {
-    height: 100%;
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: flex;
+  }
 }
 
-.grid-item {
-    height: 100%;
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 8px;
+  transition: color 0.2s, background 0.2s;
+  font-size: 0;
+  min-width: 56px;
 }
 
-.cursor-pointer {
-    cursor: pointer;
+.nav-item.active {
+  color: #18a058;
+}
+
+.nav-item:active {
+  background: rgba(24, 160, 88, 0.08);
+}
+
+.nav-label {
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 500;
 }
 </style>

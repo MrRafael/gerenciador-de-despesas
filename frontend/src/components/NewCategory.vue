@@ -32,7 +32,7 @@ const save = async () => {
 </script>
 
 <template>
-    <n-card style="width: 600px" title="Nova Categoria" :bordered="false" size="huge" role="dialog" aria-modal="true">
+    <n-card style="width: min(600px, 90vw)" title="Nova Categoria" :bordered="false" size="huge" role="dialog" aria-modal="true">
         <n-form ref="formRef" :model="category">
             <n-form-item label="Nome" path="description">
                 <n-input v-model:value="category.name" placeholder="Nome" />

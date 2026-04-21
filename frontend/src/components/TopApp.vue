@@ -81,13 +81,16 @@ async function changeCurrentMonth(month:number){
 
 <style scoped>
 header {
-    width: 100vw;
+    width: 100%;
     height: 4rem;
     position: fixed;
     left: 0;
     top: 0;
     padding: 0 2rem;
-    z-index: 1;
+    z-index: 100;
+    background: var(--color-background, #fff);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid var(--color-border, rgba(60, 60, 60, 0.12));
 }
 .grid{
     height: 100%;

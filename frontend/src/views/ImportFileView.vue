@@ -489,6 +489,7 @@ const formatCurrency = (value: number) => {
         :bordered="false"
         size="small"
         class="expenses-table"
+        :scroll-x="700"
       />
 
       <div class="step-actions">
@@ -542,6 +543,19 @@ const formatCurrency = (value: number) => {
 
 .wizard-steps {
   margin: 24px 0;
+}
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .wizard-steps {
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
 }
 
 .step-content {

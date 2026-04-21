@@ -202,9 +202,11 @@ async function saveSalary(member: MemberGroup) {
                         Convide membros
                     </n-button>
                     <new-invite v-if="!toggleNewInvite && selectedGroup" :selectedGroup="selectedGroup!" @inveted="updateInvites" />
-                    <n-button v-if="canIDeleteThisGroup()" @click="handleDeleteGroup" style="margin-top: 1rem;">
-                        Delete grupo selecionado
-                    </n-button>
+                    <div v-if="canIDeleteThisGroup()" class="delete-group-wrapper">
+                        <n-button type="error" ghost @click="handleDeleteGroup" class="delete-group-btn">
+                            Deletar grupo
+                        </n-button>
+                    </div>
                 </div>
             </n-tab-pane>
 
@@ -271,5 +273,24 @@ async function saveSalary(member: MemberGroup) {
 
 .salary-value {
     font-weight: 500;
+}
+
+.delete-group-wrapper {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--n-border-color, #f0f0f0);
+    display: flex;
+    justify-content: center;
+}
+
+.delete-group-btn {
+    width: 100%;
+    max-width: 280px;
+}
+
+@media (max-width: 600px) {
+    .tab-content {
+        padding-top: 0.25rem;
+    }
 }
 </style>

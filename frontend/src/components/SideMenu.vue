@@ -108,7 +108,7 @@ const collapsed = ref(true)
 
 <style scoped>
 .side-component {
-    width: 100vw;
+    width: 100%;
     height: 100vh;
 }
 
@@ -121,6 +121,16 @@ const collapsed = ref(true)
 }
 
 .content-side {
-    padding: 4rem;
+    padding: 5.5rem 2rem 2rem 2rem;
+}
+
+@media (max-width: 768px) {
+    .sider {
+        display: none !important;
+    }
+
+    .content-side {
+        padding: 5rem 1rem 5rem 1rem !important;
+    }
 }
 </style>

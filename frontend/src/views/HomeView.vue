@@ -432,13 +432,17 @@ const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julh
         <p>O mês será <strong>fechado permanentemente</strong>.</p>
     </n-modal>
 
-    <div v-if="sSelectedGroup.groupId" style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-bottom: 1rem;">
-        <span style="font-size: 13px; color: #555;">Mostrar todas as despesas</span>
+    <div class="page-header">
+        <h2 class="page-title">Despesas de {{ MONTH_NAMES[sMonth.month - 1] }}/{{ sYear.year }}</h2>
+    </div>
+
+    <div v-if="sSelectedGroup.groupId" class="view-toggle-bar">
+        <span>Mostrar todas as despesas</span>
         <n-switch :value="!isGroupMode" @update:value="handleViewToggle" />
     </div>
     <template v-if="isDataLoaded">
-        <n-data-table v-if="isGroupMode" :columns="groupColumns" :data="groupExpenses" :bordered="false" />
-        <n-data-table v-else :columns="allExpensesColumns" :data="expenses" :bordered="false" />
+        <n-data-table v-if="isGroupMode" :columns="groupColumns" :data="groupExpenses" :bordered="false" :scroll-x="800" />
+        <n-data-table v-else :columns="allExpensesColumns" :data="expenses" :bordered="false" :scroll-x="800" />
     </template>
 </template>
 
@@ -531,7 +535,8 @@ const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julh
 
 .pending-close-section {
     border-top: 1px solid var(--n-border-color, #eee);
-    padding-top: 0.6rem;
+    padding-top: 1rem;
+    margin-top: 0.5rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -550,5 +555,42 @@ const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julh
     flex-direction: column;
     gap: 0.2rem;
     font-size: 0.83rem;
+}
+
+.page-header {
+    margin-bottom: 1.5rem;
+}
+
+.page-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.view-toggle-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 1rem;
+    padding: 0.5rem 0;
+}
+
+.view-toggle-bar span {
+    font-size: 13px;
+    color: var(--n-text-color-3, #555);
+}
+
+@media (max-width: 600px) {
+    .split-summary-header {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .split-member-detail {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
 }
 </style>

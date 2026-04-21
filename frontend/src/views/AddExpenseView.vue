@@ -172,45 +172,49 @@ const save = async () => {
 </script>
 
 <template>
-    <n-form ref="formRef" :model="expense" :rules="rules">
-        <n-form-item label="Data" path="date">
-            <n-date-picker class="form-input" v-model:value="expense.date" format="dd/MM/yyyy" />
-        </n-form-item>
-        <n-form-item label="Valor" path="value">
-            <n-input-number class="form-input" :parse="parseCurrency" :format="formatCurrency"
-                placeholder="Valor da Despesa" v-model:value="expense.value" />
-        </n-form-item>
-        <n-form-item label="Descrição" path="description">
-            <n-input v-model:value="expense.description" placeholder="Descrição" />
-        </n-form-item>
-        <n-form-item label="Categoria" path="categoryId">
-            <n-select v-model:value="expense.categoryId" filterable :options="categoryOptions" />
-            <n-tooltip trigger="hover">
-                <template #trigger>
-                    <n-button type="tertiary" @click="showModal = true">
-                        <n-icon>
-                            <AddIcon />
-                        </n-icon>
-                    </n-button>
-                </template>
-                Adicionar Categoria
-            </n-tooltip>
-        </n-form-item>
-        <n-form-item v-if="groups.length > 0" label="Grupo" path="groupId">
-            <n-select
-                v-model:value="expense.groupId"
-                :options="groupOptions"
-                @update:value="onGroupChange"
-            />
-        </n-form-item>
-        <n-form-item v-if="showSplitSelector" label="Como dividir?" path="groupSplitConfigId">
-            <n-select v-model:value="expense.groupSplitConfigId" :options="splitConfigOptions" />
-        </n-form-item>
-    </n-form>
-
-    <n-form-item>
-        <n-button class="form-input" @click="save" :disabled="isSaving">Salvar</n-button>
-    </n-form-item>
+    <div class="add-expense-container">
+        <h2 class="page-title">Adicionar despesa</h2>
+        <n-form ref="formRef" :model="expense" :rules="rules">
+            <n-form-item label="Data" path="date">
+                <n-date-picker class="form-input" v-model:value="expense.date" format="dd/MM/yyyy" />
+            </n-form-item>
+            <n-form-item label="Valor" path="value">
+                <n-input-number class="form-input" :parse="parseCurrency" :format="formatCurrency"
+                    placeholder="Valor da Despesa" v-model:value="expense.value" />
+            </n-form-item>
+            <n-form-item label="Descrição" path="description">
+                <n-input v-model:value="expense.description" placeholder="Descrição" />
+            </n-form-item>
+            <n-form-item label="Categoria" path="categoryId">
+                <div class="category-row">
+                    <n-select v-model:value="expense.categoryId" filterable :options="categoryOptions" class="category-select" />
+                    <n-tooltip trigger="hover">
+                        <template #trigger>
+                            <n-button type="tertiary" @click="showModal = true">
+                                <n-icon>
+                                    <AddIcon />
+                                </n-icon>
+                            </n-button>
+                        </template>
+                        Adicionar Categoria
+                    </n-tooltip>
+                </div>
+            </n-form-item>
+            <n-form-item v-if="groups.length > 0" label="Grupo" path="groupId">
+                <n-select
+                    v-model:value="expense.groupId"
+                    :options="groupOptions"
+                    @update:value="onGroupChange"
+                />
+            </n-form-item>
+            <n-form-item v-if="showSplitSelector" label="Como dividir?" path="groupSplitConfigId">
+                <n-select v-model:value="expense.groupSplitConfigId" :options="splitConfigOptions" />
+            </n-form-item>
+            <n-form-item>
+                <n-button class="form-input" type="primary" @click="save" :disabled="isSaving" :loading="isSaving">Salvar</n-button>
+            </n-form-item>
+        </n-form>
+    </div>
     <n-modal v-model:show="showModal">
         <new-category @closed="onNewCategoryClosed" />
     </n-modal>
@@ -219,5 +223,26 @@ const save = async () => {
 <style scoped>
 .form-input {
     width: 100%;
+}
+
+.add-expense-container {
+    max-width: 560px;
+}
+
+.page-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+}
+
+.category-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.category-select {
+    flex: 1;
 }
 </style>

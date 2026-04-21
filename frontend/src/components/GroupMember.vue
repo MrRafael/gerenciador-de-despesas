@@ -25,8 +25,9 @@ defineProps<{
 
 <style scoped>
 .background{
-    background: #f9eaff;
-    border-radius: 5px;
-    padding: 10px;
+    background: var(--n-color, #f4f0f7);
+    border: 1px solid var(--n-border-color, #e8e0f0);
+    border-radius: 8px;
+    padding: 12px 16px;
 }
 </style>

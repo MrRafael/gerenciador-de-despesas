@@ -57,8 +57,8 @@ async function reject(invite: MemberGroup) {
 <style scoped>
 .invite {
     background: #f9eaff;
-    border-radius: 5px;
-    padding: 10px;
-    margin: 1rem 0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0.5rem 0;
 }
 </style>

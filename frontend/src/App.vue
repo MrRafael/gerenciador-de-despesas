@@ -75,7 +75,7 @@ function installPWA() {
                             <side-menu>
                                 <RouterView />
                             </side-menu>
-                            <!-- <bottom-app /> -->
+                            <bottom-app />
                         </SignedIn>
                     </div>
                 </n-dialog-provider>
