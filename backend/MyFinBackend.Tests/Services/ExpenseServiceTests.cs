@@ -17,7 +17,7 @@ namespace MyFinBackend.Tests.Services
             Value = 100f,
             Date = date ?? DateOnly.FromDateTime(DateTime.Today),
             UserId = userId,
-            CategoryId = 1
+            Category = new ExpenseCategory { Name = "Categoria", UserId = userId }
         };
 
         [Fact]

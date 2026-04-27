@@ -263,7 +263,7 @@ function createAllExpensesColumns(): DataTableColumns<Expense> {
             title: 'Categoria',
             key: 'categoryId',
             render(row) {
-                const label = options.value.find(x => x.value == row.categoryId)?.label;
+                const label = options.value.find(x => x.value == row.categoryId)?.label ?? row.categoryName;
                 if (!label) return null;
                 return h(NTag, {}, () => label);
             }
@@ -325,7 +325,7 @@ function createGroupColumns(): DataTableColumns<GroupExpense> {
             title: 'Categoria',
             key: 'categoryId',
             render(row) {
-                const label = options.value.find(x => x.value == row.categoryId)?.label;
+                const label = options.value.find(x => x.value == row.categoryId)?.label ?? row.categoryName;
                 if (!label) return null;
                 return h(NTag, {}, () => label);
             }

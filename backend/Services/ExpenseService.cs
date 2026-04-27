@@ -12,7 +12,7 @@ namespace MyFinBackend.Services
             if (userId != contextUserId)
                 return ServiceResult<List<ExpenseReturnDto>>.Fail(ServiceError.Unauthorized);
 
-            var expenses = await db.Expenses.Include(x => x.Group).Where(x => x.UserId == userId).ToListAsync();
+            var expenses = await db.Expenses.Include(x => x.Group).Include(x => x.Category).Where(x => x.UserId == userId).ToListAsync();
             return ServiceResult<List<ExpenseReturnDto>>.Ok(expenses.Select(ToDto).ToList());
         }
 
@@ -23,6 +23,7 @@ namespace MyFinBackend.Services
 
             var expenses = await db.Expenses
                 .Include(x => x.Group)
+                .Include(x => x.Category)
                 .Where(x => x.UserId == userId && x.Date >= startDate && x.Date <= endDate)
                 .ToListAsync();
 
@@ -31,7 +32,7 @@ namespace MyFinBackend.Services
 
         public async Task<ServiceResult<ExpenseReturnDto>> GetByIdAsync(int id, string contextUserId)
         {
-            var expense = await db.Expenses.Include(x => x.Group).FirstOrDefaultAsync(x => x.Id == id);
+            var expense = await db.Expenses.Include(x => x.Group).Include(x => x.Category).FirstOrDefaultAsync(x => x.Id == id);
             if (expense == null || expense.UserId != contextUserId)
                 return ServiceResult<ExpenseReturnDto>.Fail(ServiceError.NotFound);
 
@@ -45,6 +46,7 @@ namespace MyFinBackend.Services
 
             db.Expenses.Add(expense);
             await db.SaveChangesAsync();
+            await db.Entry(expense).Reference(x => x.Category).LoadAsync();
             return ServiceResult<ExpenseReturnDto>.Ok(ToDto(expense));
         }
 
@@ -79,6 +81,7 @@ namespace MyFinBackend.Services
                 await db.SaveChangesAsync();
             }
 
+            await db.Entry(expense).Reference(x => x.Category).LoadAsync();
             return ServiceResult<ExpenseReturnDto>.Ok(ToDto(expense));
         }
 
@@ -89,12 +92,16 @@ namespace MyFinBackend.Services
 
             db.Expenses.AddRange(bulk.Expenses);
             await db.SaveChangesAsync();
+            foreach(var exp in bulk.Expenses)
+            {
+                await db.Entry(exp).Reference(x => x.Category).LoadAsync();
+            }
             return ServiceResult<List<ExpenseReturnDto>>.Ok(bulk.Expenses.Select(ToDto).ToList());
         }
 
         public async Task<ServiceResult<ExpenseReturnDto>> UpdateGroupAsync(int expenseId, UpdateExpenseGroupDto dto, string contextUserId)
         {
-            var expense = await db.Expenses.Include(x => x.Group).FirstOrDefaultAsync(x => x.Id == expenseId);
+            var expense = await db.Expenses.Include(x => x.Group).Include(x => x.Category).FirstOrDefaultAsync(x => x.Id == expenseId);
             if (expense == null || expense.UserId != contextUserId)
                 return ServiceResult<ExpenseReturnDto>.Fail(ServiceError.NotFound);
 
@@ -147,7 +154,8 @@ namespace MyFinBackend.Services
             Value = x.Value,
             CategoryId = x.CategoryId,
             GroupId = x.GroupId,
-            GroupName = x.Group?.Name
+            GroupName = x.Group?.Name,
+            CategoryName = x.Category?.Name
         };
     }
 }

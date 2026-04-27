@@ -238,6 +238,7 @@ namespace MyFinBackend.Services
                 return ServiceResult<List<GroupExpenseDto>>.Fail(ServiceError.Unauthorized);
 
             var expenses = await db.Expenses
+                .Include(e => e.Category)
                 .Where(e => e.GroupId == groupId && e.Date >= startDate && e.Date <= endDate)
                 .ToListAsync();
 
@@ -254,6 +255,7 @@ namespace MyFinBackend.Services
                 Value = e.Value,
                 Date = e.Date,
                 CategoryId = e.CategoryId,
+                CategoryName = e.Category?.Name,
                 UserId = e.UserId,
                 GroupSplitConfigId = splitConfigs.TryGetValue(e.Id, out var scId) ? scId : null
             }).ToList();

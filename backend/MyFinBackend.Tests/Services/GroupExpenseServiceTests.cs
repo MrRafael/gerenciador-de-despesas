@@ -29,7 +29,7 @@ namespace MyFinBackend.Tests.Services
             Value = 100f,
             Date = date,
             UserId = userId,
-            CategoryId = 1,
+            Category = new ExpenseCategory { Name = "Categoria", UserId = userId },
             GroupId = groupId
         };
 

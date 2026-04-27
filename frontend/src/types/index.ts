@@ -29,6 +29,7 @@ export interface Expense {
     userId?: string,
     groupId?: number,
     groupName?: string,
+    categoryName?: string,
 }
 
 export enum SplitType {
@@ -67,6 +68,7 @@ export interface GroupExpense {
     categoryId: number;
     userId: string;
     groupSplitConfigId?: number;
+    categoryName?: string;
 }
 
 export interface GroupSplitConfigShare {
