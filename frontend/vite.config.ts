@@ -11,7 +11,7 @@ function copyPdfWorker() {
     name: 'copy-pdf-worker',
     buildStart() {
       const src = resolve('node_modules/pdfjs-dist/build/pdf.worker.min.mjs')
-      const dest = resolve('public/pdf.worker.min.mjs')
+      const dest = resolve('public/pdf.worker.min.js')
       copyFileSync(src, dest)
     },
   }
