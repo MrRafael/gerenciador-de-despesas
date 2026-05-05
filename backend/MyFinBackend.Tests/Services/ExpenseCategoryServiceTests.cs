@@ -39,8 +39,8 @@ namespace MyFinBackend.Tests.Services
         public async Task GetByUserId_ReturnsCategories_WhenExist()
         {
             using var db = DbContextFactory.Create();
-            db.ExpenseCategories.Add(MakeCategory("user-a"));
             db.ExpenseCategories.Add(MakeCategory("user-a", "Transporte"));
+            db.ExpenseCategories.Add(MakeCategory("user-a", "Alimentação"));
             await db.SaveChangesAsync();
             var service = new ExpenseCategoryService(db);
 
@@ -48,6 +48,8 @@ namespace MyFinBackend.Tests.Services
 
             Assert.True(result.IsSuccess);
             Assert.Equal(2, result.Data!.Count);
+            Assert.Equal("Alimentação", result.Data[0].Name);
+            Assert.Equal("Transporte", result.Data[1].Name);
         }
 
         [Fact]

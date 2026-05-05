@@ -21,7 +21,7 @@ namespace MyFinBackend.Services
             if (userId != contextUserId)
                 return ServiceResult<List<ExpenseCategoryReturnDto>>.Fail(ServiceError.Unauthorized);
 
-            var categories = await db.ExpenseCategories.Where(x => x.UserId == userId).ToListAsync();
+            var categories = await db.ExpenseCategories.Where(x => x.UserId == userId).OrderBy(x => x.Name).ToListAsync();
             return ServiceResult<List<ExpenseCategoryReturnDto>>.Ok(
                 categories.Select(x => new ExpenseCategoryReturnDto { Id = x.Id, Name = x.Name }).ToList());
         }
