@@ -33,7 +33,7 @@ const isDataLoaded = ref(false);
 
 // --- Filters & Sort ---
 const searchText = ref('');
-const sortState = ref<DataTableSortState>({ columnKey: 'date', order: 'descend' });
+const sortState = ref<DataTableSortState>({ columnKey: 'date', order: 'descend', sorter: 'default' });
 
 const splitSummary = ref<{ groupId: number; groupName: string; members: SplitMemberResult[] } | null>(null);
 
