@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, h, computed, watch, onMounted } from 'vue';
-import { NDataTable, NTag, NIcon, NSelect, NSwitch, NCheckbox, NModal, useDialog, useMessage, type DataTableColumns } from 'naive-ui';
+import { NDataTable, NTag, NIcon, NSelect, NSwitch, NCheckbox, NModal, NInput, useDialog, useMessage, type DataTableColumns, type DataTableSortState } from 'naive-ui';
 import type { Expense, GroupExpense, MemberGroup, SplitMemberResult } from '@/types';
 import { useMonthStore } from '@/stores/currentMonth';
 import { useYearStore } from '@/stores/currentYear';
@@ -30,6 +30,10 @@ const expenses = ref<Expense[]>([]);
 const groupExpenses = ref<GroupExpense[]>([]);
 const activeGroupSplitConfigs = ref<{ label: string; value: number }[]>([]);
 const isDataLoaded = ref(false);
+
+// --- Filters & Sort ---
+const searchText = ref('');
+const sortState = ref<DataTableSortState>({ columnKey: 'date', order: 'descend' });
 
 const splitSummary = ref<{ groupId: number; groupName: string; members: SplitMemberResult[] } | null>(null);
 
@@ -244,6 +248,8 @@ function createAllExpensesColumns(): DataTableColumns<Expense> {
         {
             title: 'Data',
             key: 'date',
+            sorter: 'default',
+            sortOrder: sortState.value.columnKey === 'date' ? sortState.value.order : false,
             render(row) {
                 return new Date(row.date).toLocaleDateString();
             }
@@ -251,10 +257,14 @@ function createAllExpensesColumns(): DataTableColumns<Expense> {
         {
             title: 'Descrição',
             key: 'description',
+            sorter: 'default',
+            sortOrder: sortState.value.columnKey === 'description' ? sortState.value.order : false,
         },
         {
             title: 'Valor',
             key: 'value',
+            sorter: 'default',
+            sortOrder: sortState.value.columnKey === 'value' ? sortState.value.order : false,
             render(row) {
                 return formatCurrency(row.value);
             }
@@ -262,6 +272,17 @@ function createAllExpensesColumns(): DataTableColumns<Expense> {
         {
             title: 'Categoria',
             key: 'categoryId',
+            sorter(a: Expense, b: Expense) {
+                const la = options.value.find(x => x.value == a.categoryId)?.label ?? a.categoryName ?? '';
+                const lb = options.value.find(x => x.value == b.categoryId)?.label ?? b.categoryName ?? '';
+                return la.localeCompare(lb);
+            },
+            sortOrder: sortState.value.columnKey === 'categoryId' ? sortState.value.order : false,
+            filterOptions: options.value.map(o => ({ label: o.label, value: o.value })),
+            filterMultiple: true,
+            filter(value, row) {
+                return row.categoryId === value;
+            },
             render(row) {
                 const label = options.value.find(x => x.value == row.categoryId)?.label ?? row.categoryName;
                 if (!label) return null;
@@ -306,6 +327,8 @@ function createGroupColumns(): DataTableColumns<GroupExpense> {
         {
             title: 'Data',
             key: 'date',
+            sorter: 'default',
+            sortOrder: sortState.value.columnKey === 'date' ? sortState.value.order : false,
             render(row) {
                 return new Date(row.date).toLocaleDateString();
             }
@@ -313,10 +336,14 @@ function createGroupColumns(): DataTableColumns<GroupExpense> {
         {
             title: 'Descrição',
             key: 'description',
+            sorter: 'default',
+            sortOrder: sortState.value.columnKey === 'description' ? sortState.value.order : false,
         },
         {
             title: 'Valor',
             key: 'value',
+            sorter: 'default',
+            sortOrder: sortState.value.columnKey === 'value' ? sortState.value.order : false,
             render(row) {
                 return formatCurrency(row.value);
             }
@@ -324,6 +351,17 @@ function createGroupColumns(): DataTableColumns<GroupExpense> {
         {
             title: 'Categoria',
             key: 'categoryId',
+            sorter(a: GroupExpense, b: GroupExpense) {
+                const la = options.value.find(x => x.value == a.categoryId)?.label ?? a.categoryName ?? '';
+                const lb = options.value.find(x => x.value == b.categoryId)?.label ?? b.categoryName ?? '';
+                return la.localeCompare(lb);
+            },
+            sortOrder: sortState.value.columnKey === 'categoryId' ? sortState.value.order : false,
+            filterOptions: options.value.map(o => ({ label: o.label, value: o.value })),
+            filterMultiple: true,
+            filter(value, row) {
+                return row.categoryId === value;
+            },
             render(row) {
                 const label = options.value.find(x => x.value == row.categoryId)?.label ?? row.categoryName;
                 if (!label) return null;
@@ -375,13 +413,31 @@ function createGroupColumns(): DataTableColumns<GroupExpense> {
     ];
 }
 
-const _allExpensesColumns = createAllExpensesColumns();
-const allExpensesColumns = computed(() =>
-    groups.value.length > 0
-        ? _allExpensesColumns
-        : _allExpensesColumns.filter(c => (c as unknown as Record<string, unknown>)['key'] !== 'groupId')
-);
-const groupColumns = createGroupColumns();
+const allExpensesColumns = computed(() => {
+    const cols = createAllExpensesColumns();
+    return groups.value.length > 0
+        ? cols
+        : cols.filter(c => (c as unknown as Record<string, unknown>)['key'] !== 'groupId');
+});
+
+const groupColumns = computed(() => createGroupColumns());
+
+// --- Filtered data (description search only; category is handled by NDataTable natively) ---
+const filteredExpenses = computed(() => {
+    const search = searchText.value.trim().toLowerCase();
+    if (!search) return expenses.value;
+    return expenses.value.filter(r => r.description.toLowerCase().includes(search));
+});
+
+const filteredGroupExpenses = computed(() => {
+    const search = searchText.value.trim().toLowerCase();
+    if (!search) return groupExpenses.value;
+    return groupExpenses.value.filter(r => r.description.toLowerCase().includes(search));
+});
+
+function handleSortChange(state: DataTableSortState) {
+    sortState.value = state;
+}
 
 const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 </script>
@@ -440,9 +496,34 @@ const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julh
         <span>Mostrar todas as despesas</span>
         <n-switch :value="!isGroupMode" @update:value="handleViewToggle" />
     </div>
+
+    <div class="filters-bar">
+        <n-input
+            v-model:value="searchText"
+            placeholder="Buscar por descrição…"
+            clearable
+        />
+    </div>
+
     <template v-if="isDataLoaded">
-        <n-data-table v-if="isGroupMode" :columns="groupColumns" :data="groupExpenses" :bordered="false" :scroll-x="800" />
-        <n-data-table v-else :columns="allExpensesColumns" :data="expenses" :bordered="false" :scroll-x="800" />
+        <n-data-table
+            v-if="isGroupMode"
+            :columns="groupColumns"
+            :data="filteredGroupExpenses"
+            :bordered="false"
+            :scroll-x="800"
+            :default-sort="{ columnKey: 'date', order: 'descend' }"
+            @update:sorter="handleSortChange"
+        />
+        <n-data-table
+            v-else
+            :columns="allExpensesColumns"
+            :data="filteredExpenses"
+            :bordered="false"
+            :scroll-x="800"
+            :default-sort="{ columnKey: 'date', order: 'descend' }"
+            @update:sorter="handleSortChange"
+        />
     </template>
 </template>
 
@@ -579,6 +660,11 @@ const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julh
 .view-toggle-bar span {
     font-size: 13px;
     color: var(--n-text-color-3, #555);
+}
+
+.filters-bar {
+    margin-bottom: 1rem;
+    max-width: 320px;
 }
 
 @media (max-width: 600px) {
