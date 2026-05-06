@@ -82,8 +82,9 @@ function startExpense(): ExpenseSaveDto {
         date: date.getTime(),
         value: null,
         description: '',
-        groupId: undefined,
-        groupSplitConfigId: undefined,
+        categoryId: null,
+        groupId: null,
+        groupSplitConfigId: null,
     }
 }
 

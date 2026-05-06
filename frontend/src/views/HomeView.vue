@@ -251,6 +251,10 @@ function createAllExpensesColumns(): DataTableColumns<Expense> {
             sorter: 'default',
             sortOrder: sortState.value.columnKey === 'date' ? sortState.value.order : false,
             render(row) {
+                const parts = row.date.split('T')[0].split('-');
+                if (parts.length === 3) {
+                    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                }
                 return new Date(row.date).toLocaleDateString();
             }
         },
@@ -330,6 +334,10 @@ function createGroupColumns(): DataTableColumns<GroupExpense> {
             sorter: 'default',
             sortOrder: sortState.value.columnKey === 'date' ? sortState.value.order : false,
             render(row) {
+                const parts = row.date.split('T')[0].split('-');
+                if (parts.length === 3) {
+                    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                }
                 return new Date(row.date).toLocaleDateString();
             }
         },

@@ -42,10 +42,10 @@ export interface ExpenseSaveDto {
     description: string,
     value: number | null,
     date: number,
-    categoryId?: number,
+    categoryId?: number | null,
     userId?: string,
-    groupId?: number,
-    groupSplitConfigId?: number,
+    groupId?: number | null,
+    groupSplitConfigId?: number | null,
 }
 
 export interface ExpenseCategory {
