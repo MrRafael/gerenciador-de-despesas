@@ -212,30 +212,33 @@ const handleDelete = (expenseId: number) => {
     });
 }
 
-const handleGroupChange = async (expense: Expense, index: number, groupId: number | null) => {
+const handleGroupChange = async (expense: Expense, groupId: number | null) => {
     try {
         const updated = await updateExpenseGroup(expense.id!, groupId, undefined);
-        expenses.value.splice(index, 1, { ...expenses.value[index], groupId: updated.groupId, groupName: updated.groupName });
+        const idx = expenses.value.findIndex(e => e.id === expense.id);
+        if (idx !== -1) expenses.value.splice(idx, 1, { ...expenses.value[idx], groupId: updated.groupId, groupName: updated.groupName });
     } catch (err: unknown) {
         const status = (err as { response?: { status?: number } })?.response?.status;
         message.error(status === 409 ? closedMonthMsg : 'Erro ao atualizar grupo da despesa');
     }
 }
 
-const handleGroupChangeFromGroupView = async (expense: GroupExpense, index: number, groupId: number | null) => {
+const handleGroupChangeFromGroupView = async (expense: GroupExpense, groupId: number | null) => {
     try {
         await updateExpenseGroup(expense.id, groupId, undefined);
-        groupExpenses.value.splice(index, 1);
+        const idx = groupExpenses.value.findIndex(e => e.id === expense.id);
+        if (idx !== -1) groupExpenses.value.splice(idx, 1);
     } catch (err: unknown) {
         const status = (err as { response?: { status?: number } })?.response?.status;
         message.error(status === 409 ? closedMonthMsg : 'Erro ao atualizar grupo da despesa');
     }
 }
 
-const handleSplitConfigChange = async (expense: GroupExpense, index: number, configId: number) => {
+const handleSplitConfigChange = async (expense: GroupExpense, configId: number) => {
     try {
         await updateExpenseGroup(expense.id, activeGroupId.value!, configId);
-        groupExpenses.value.splice(index, 1, { ...groupExpenses.value[index], groupSplitConfigId: configId });
+        const idx = groupExpenses.value.findIndex(e => e.id === expense.id);
+        if (idx !== -1) groupExpenses.value.splice(idx, 1, { ...groupExpenses.value[idx], groupSplitConfigId: configId });
         await loadSplitSummary();
     } catch (err: unknown) {
         const status = (err as { response?: { status?: number } })?.response?.status;
@@ -296,19 +299,19 @@ function createAllExpensesColumns(): DataTableColumns<Expense> {
         {
             title: 'Grupo',
             key: 'groupId',
-            render(row, index) {
+            render(row) {
                 if (row.groupId != null) {
                     return h(NTag, {
                         closable: true,
-                        onClose: () => handleGroupChange(row, index, null)
+                        onClose: () => handleGroupChange(row, null)
                     }, () => row.groupName ?? String(row.groupId));
                 }
                 return h(NSelect, {
-                    value: null,
+                    value: row.groupId ?? null,
                     placeholder: 'Sem grupo',
                     options: groupOptions.value.filter(o => o.value !== null),
                     style: { width: '130px' },
-                    onUpdateValue: (v: number | null) => handleGroupChange(row, index, v)
+                    onUpdateValue: (v: number | null) => handleGroupChange(row, v)
                 });
             }
         },
@@ -379,18 +382,18 @@ function createGroupColumns(): DataTableColumns<GroupExpense> {
         {
             title: 'Grupo',
             key: 'group',
-            render(row, index) {
+            render(row) {
                 const groupName = groups.value.find(g => g.id === activeGroupId.value)?.name ?? String(activeGroupId.value);
                 return h(NTag, {
                     closable: true,
-                    onClose: () => handleGroupChangeFromGroupView(row, index, null)
+                    onClose: () => handleGroupChangeFromGroupView(row, null)
                 }, () => groupName);
             }
         },
         {
             title: 'Divisão',
             key: 'splitConfig',
-            render(row, index) {
+            render(row) {
                 if (activeGroupSplitConfigs.value.length === 0) return null;
                 if (row.userId !== sUser.user?.id) {
                     const label = activeGroupSplitConfigs.value.find(c => c.value === row.groupSplitConfigId)?.label ?? '—';
@@ -402,7 +405,7 @@ function createGroupColumns(): DataTableColumns<GroupExpense> {
                     placeholder: 'Selecionar',
                     style: 'width: 140px;',
                     size: 'small',
-                    onUpdateValue: (v: number) => handleSplitConfigChange(row, index, v),
+                    onUpdateValue: (v: number) => handleSplitConfigChange(row, v),
                 });
             }
         },
