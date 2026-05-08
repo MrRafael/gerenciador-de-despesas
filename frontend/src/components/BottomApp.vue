@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NIcon } from 'naive-ui';
+import { NIcon, NLayoutFooter } from 'naive-ui';
 import {
   AddRound,
   HomeFilled,
@@ -27,7 +27,7 @@ function navigate(path: string) {
 </script>
 
 <template>
-  <footer class="bottom-nav">
+  <n-layout-footer bordered class="bottom-nav">
     <button
       v-for="item in items"
       :key="item.route"
@@ -37,7 +37,7 @@ function navigate(path: string) {
       <n-icon :component="item.icon" :size="22" />
       <span class="nav-label">{{ item.label }}</span>
     </button>
-  </footer>
+  </n-layout-footer>
 </template>
 
 <style scoped>
@@ -47,14 +47,11 @@ function navigate(path: string) {
   left: 0;
   width: 100%;
   height: 3.5rem;
-  background: var(--color-background, #fff);
-  border-top: 1px solid var(--color-border, rgba(60, 60, 60, 0.12));
   display: none; /* oculto por padrão — só aparece no mobile */
   justify-content: space-around;
   align-items: center;
   z-index: 100;
   padding: 0;
-  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.06);
 }
 
 @media (max-width: 768px) {

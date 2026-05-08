@@ -3,13 +3,15 @@ import { RouterLink, RouterView } from 'vue-router'
 import TopApp from './components/TopApp.vue';
 import SideMenu from './components/SideMenu.vue';
 import BottomApp from './components/BottomApp.vue';
-import { NConfigProvider, NMessageProvider, NDialogProvider, NLoadingBarProvider } from 'naive-ui'
-import { ptBR, datePtBR } from 'naive-ui';
+import { NConfigProvider, NMessageProvider, NDialogProvider, NLoadingBarProvider, NGlobalStyle, darkTheme, useOsTheme, ptBR, datePtBR } from 'naive-ui'
 import InstallPage from './views/InstallPage.vue';
 import { ref, onBeforeMount, computed, inject } from 'vue';
 import { SignedIn, SignedOut, SignInButton, UserButton, SignIn, useAuth } from '@clerk/vue';
 import axios from 'axios';
 const { getToken } = useAuth();
+
+const osTheme = useOsTheme();
+const theme = computed(() => osTheme.value === 'dark' ? darkTheme : null);
 
 const month = ref(0);
 
@@ -64,7 +66,8 @@ function installPWA() {
     <SignedOut>
         <SignIn />
     </SignedOut>
-    <n-config-provider :locale="ptBR" :date-locale="datePtBR">
+    <n-config-provider :theme="theme" :locale="ptBR" :date-locale="datePtBR">
+        <n-global-style />
         <n-loading-bar-provider>
             <n-message-provider>
                 <n-dialog-provider>

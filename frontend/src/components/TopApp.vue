@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeMount, ref } from 'vue';
 import ConstMonths from '../consts/months';
-import { NPopselect, NButton, NGrid, NGridItem} from 'naive-ui';
+import { NPopselect, NButton, NGrid, NGridItem, NLayoutHeader } from 'naive-ui';
 import {useUserStore} from '../stores/user';
 import { useMonthStore } from '@/stores/currentMonth';
 import { useYearStore } from '@/stores/currentYear';
@@ -63,7 +63,7 @@ async function changeCurrentMonth(month:number){
 </script>
 
 <template>
-    <header>
+    <n-layout-header bordered class="header">
         <n-grid :cols="3" class="grid">
             <n-grid-item class="grid-item">
             </n-grid-item>
@@ -76,11 +76,11 @@ async function changeCurrentMonth(month:number){
                 <UserButton/>
             </n-grid-item>
         </n-grid>
-    </header>
+    </n-layout-header>
 </template>
 
 <style scoped>
-header {
+.header {
     width: 100%;
     height: 4rem;
     position: fixed;
@@ -88,9 +88,6 @@ header {
     top: 0;
     padding: 0 2rem;
     z-index: 100;
-    background: var(--color-background, #fff);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-    border-bottom: 1px solid var(--color-border, rgba(60, 60, 60, 0.12));
 }
 .grid{
     height: 100%;
